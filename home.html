@@ -2,10 +2,13 @@
 <html lang="hi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#14213d" />
   <title>होम डैशबोर्ड | शासकीय विद्यालय प्रबंधन प्रणाली</title>
 
-  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700;800&display=swap" rel="stylesheet" />
 
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -13,47 +16,199 @@
 
   <script defer src="firebase-config.js"></script>
   <script defer src="app.js"></script>
+
+  <style>
+    :root {
+      --ink: #14213d; --ink-soft: #3d4a63; --muted: #6b7690;
+      --bg: #eef1f6; --card: #ffffff; --line: #dde3ee; --saffron: #e8890c;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: "Mukta", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--ink); min-height: 100vh; line-height: 1.5; font-size: 16px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    }
+    :focus-visible { outline: 3px solid var(--saffron); outline-offset: 2px; }
+
+    .container { max-width: 1000px; margin: 0 auto; padding: 18px 14px 8px; }
+    .section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 6px 2px 12px; }
+    .section-head h2 { font-size: 1.15rem; font-weight: 800; }
+    .section-head span { font-size: 0.9rem; font-weight: 600; color: var(--muted); }
+
+    /* ---------- आज का सारांश ---------- */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 26px; }
+    .stat {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      padding: 14px 12px 12px; position: relative; overflow: hidden;
+    }
+    .stat::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--c); }
+    .stat-value { display: block; font-size: 1.9rem; font-weight: 800; line-height: 1.15; color: var(--ink); padding-left: 4px; }
+    .stat-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted); line-height: 1.35; margin-top: 4px; padding-left: 4px; }
+    .stat.s1 { --c: #0f766e; }
+    .stat.s2 { --c: #e8890c; }
+    .stat.s3 { --c: #3b5bdb; }
+    @media (min-width: 640px) {
+      .stat { padding: 18px 20px 16px; }
+      .stat-value { font-size: 2.4rem; }
+      .stat-label { font-size: 0.95rem; }
+    }
+
+    /* ---------- कार्य टाइल ---------- */
+    .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    @media (min-width: 720px) { .tiles { grid-template-columns: repeat(3, 1fr); gap: 16px; } }
+
+    .tile {
+      display: flex; flex-direction: column; gap: 12px; min-height: 176px;
+      background: var(--card); border: 1px solid var(--line); border-radius: 18px;
+      padding: 16px 14px 14px; text-decoration: none; color: var(--ink);
+      box-shadow: 0 1px 2px rgba(20, 33, 61, 0.04);
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    }
+    .tile:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(20, 33, 61, 0.1); border-color: var(--c); }
+    .tile:active { transform: scale(0.98); }
+
+    .icon {
+      width: 52px; height: 52px; border-radius: 15px; display: grid; place-items: center;
+      background: var(--c); color: #fff; flex: none;
+    }
+    .icon svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+    .tile h3 { font-size: 1.08rem; font-weight: 800; line-height: 1.3; }
+    .tile p { font-size: 0.88rem; color: var(--muted); line-height: 1.4; margin-top: 2px; }
+    .go {
+      margin-top: auto; align-self: flex-end; width: 34px; height: 34px; border-radius: 50%;
+      display: grid; place-items: center; background: var(--tint, #f1f4fa); color: var(--c); font-weight: 800; font-size: 1.1rem;
+      transition: background 0.15s, color 0.15s;
+    }
+    .tile:hover .go { background: var(--c); color: #fff; }
+
+    .t1 { --c: #0f766e; --tint: #e3f4f2; }
+    .t2 { --c: #e8890c; --tint: #fdf0dc; }
+    .t3 { --c: #3b5bdb; --tint: #e6ebfc; }
+    .t4 { --c: #8a3ffc; --tint: #f0e8fe; }
+    .t5 { --c: #c2255c; --tint: #fbe6ee; }
+    .t6 { --c: #1c7ed6; --tint: #e2f0fc; }
+
+    .foot { text-align: center; font-size: 0.85rem; color: var(--muted); margin: 26px 14px 0; font-weight: 600; }
+
+    @media (prefers-reduced-motion: reduce) { .tile { transition: none; } .tile:hover { transform: none; } }
+  </style>
 </head>
 <body data-page="home">
-  <header class="topbar">
-    <div>
-      <h1>शासकीय विद्यालय डैशबोर्ड</h1>
-      <p id="user-email-badge" class="subtitle">लॉगिन सत्यापित हो रहा है...</p>
-    </div>
-    <button id="logout-btn" class="btn btn-danger btn-sm">लॉगआउट</button>
-  </header>
+  <!-- ===== हेडर: यहाँ अपना हेडर लगाएँ =====
+       नीचे के दोनों छिपे तत्व app.js (लॉगिन/लॉगआउट) के लिए पहले जैसे ही रखे हैं।
+       अपना हेडर बनाते समय इन्हीं id को उसमें ले जाएँ। -->
+  <div id="site-header">
+    <span id="user-email-badge" hidden></span>
+    <button id="logout-btn" type="button" hidden>लॉगआउट</button>
+  </div>
+  <!-- ===== हेडर समाप्त ===== -->
 
   <main class="container">
-    <!-- त्वरित सारांश -->
-    <section class="grid-3 stats-grid">
-      <div class="card stat-card">
-        <span class="stat-label">आज उपस्थित बच्चे</span>
+    <!-- आज का सारांश -->
+    <div class="section-head">
+      <h2>आज का सारांश</h2>
+      <span id="today-text"></span>
+    </div>
+    <section class="stats">
+      <div class="stat s1">
         <strong id="dash-students-count" class="stat-value">0</strong>
+        <span class="stat-label">आज उपस्थित बच्चे</span>
       </div>
-      <div class="card stat-card">
-        <span class="stat-label">आज उपस्थित रसोइए (4 में से)</span>
+      <div class="stat s2">
         <strong id="dash-cooks-count" class="stat-value">0 / 4</strong>
+        <span class="stat-label">आज उपस्थित रसोइए (4 में से)</span>
       </div>
-      <div class="card stat-card">
-        <span class="stat-label">आज MDM लाभार्थी</span>
+      <div class="stat s3">
         <strong id="dash-mdm-count" class="stat-value">0</strong>
+        <span class="stat-label">आज MDM लाभार्थी</span>
       </div>
     </section>
 
-    <!-- मुख्य लिंक्स -->
-    <section class="grid-2 nav-cards">
-      <div class="card link-card">
-        <h2>फेस उपस्थिति व रजिस्ट्रेशन</h2>
-        <p class="hint">कक्षा 1–8 के लगभग 130 बच्चों और 4 रसोइयों की Face Authentication उपस्थिति तथा नया चेहरा रजिस्टर करें।</p>
-        <a href="attendance.html" class="btn btn-primary">उपस्थिति पेज खोलें</a>
-      </div>
+    <!-- मुख्य कार्य -->
+    <div class="section-head">
+      <h2>मुख्य कार्य</h2>
+    </div>
+    <section class="tiles">
+      <a href="attendance.html" class="tile t1">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="m16.5 9.5 2 2 3.5-4"/></svg>
+        </span>
+        <div>
+          <h3>बच्चों की उपस्थिति दर्ज करें</h3>
+          <p>चेहरा दिखाकर हाज़िरी लगाएँ</p>
+        </div>
+        <span class="go" aria-hidden="true">›</span>
+      </a>
 
-      <div class="card link-card">
-        <h2>MDM एंट्री व मासिक रिपोर्ट</h2>
-        <p class="hint">दैनिक भोजन संख्या, वार व मेनू दर्ज करें और महीने की PDF रिपोर्ट (MDM प्रभारी के हस्ताक्षर सहित) डाउनलोड करें।</p>
-        <a href="mdm.html" class="btn btn-success">MDM पेज खोलें</a>
-      </div>
+      <a href="mdm.html" class="tile t2">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M3 11h18a9 9 0 0 1-18 0Z"/><path d="M8 20h8"/><path d="M9 4c-1 1.2 1 2 0 3.2M13 4c-1 1.2 1 2 0 3.2"/></svg>
+        </span>
+        <div>
+          <h3>MDM दर्ज करें</h3>
+          <p>भोजन संख्या, मेनू व मासिक PDF</p>
+        </div>
+        <span class="go" aria-hidden="true">›</span>
+      </a>
+
+      <a href="monthly-test.html" class="tile t3">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6M9 14h6M9 18h3"/></svg>
+        </span>
+        <div>
+          <h3>मासिक टेस्ट अंक दर्ज करें</h3>
+          <p>कक्षा व विषय अनुसार अंक भरें</p>
+        </div>
+        <span class="go" aria-hidden="true">›</span>
+      </a>
+
+      <a href="jawak.html" class="tile t4">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M21.5 3 10.5 14"/><path d="M21.5 3 15 21l-4.5-7L3.5 9.5 21.5 3Z"/></svg>
+        </span>
+        <div>
+          <h3>जावक दर्ज करें</h3>
+          <p>A4 पत्र बनाएँ, PDF व प्रिंट</p>
+        </div>
+        <span class="go" aria-hidden="true">›</span>
+      </a>
+
+      <a href="halfyearly-result.html" class="tile t5">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="5.5"/><path d="m9 14 -1.5 7 4.5-2.5 4.5 2.5L15 14"/><path d="m10 9 1.5 1.5L14.5 7.5"/></svg>
+        </span>
+        <div>
+          <h3>अर्धवार्षिक परीक्षा परिणाम दर्ज करें</h3>
+          <p>परीक्षा के अंक व परिणाम भरें</p>
+        </div>
+        <span class="go" aria-hidden="true">›</span>
+      </a>
+
+      <a href="admission-report.html" class="tile t6">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/><path d="M3 20h18"/></svg>
+        </span>
+        <div>
+          <h3>एडमिशन रिपोर्ट देखें</h3>
+          <p>कक्षा अनुसार प्रवेश की जानकारी</p>
+        </div>
+        <span class="go" aria-hidden="true">›</span>
+      </a>
     </section>
+
+    <p class="foot">शासकीय एकीकृत माध्यमिक विद्यालय हरिपुरा</p>
   </main>
+
+  <script>
+    (function () {
+      var days = ["रविवार", "सोमवार", "मंगलवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
+      var months = ["जनवरी", "फ़रवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त", "सितंबर", "अक्टूबर", "नवंबर", "दिसंबर"];
+      var n = new Date();
+      var el = document.getElementById("today-text");
+      if (el) el.textContent = days[n.getDay()] + ", " + n.getDate() + " " + months[n.getMonth()] + " " + n.getFullYear();
+    })();
+  </script>
 </body>
 </html>
