@@ -1,4 +1,3 @@
-// दिनांक व वार की सामान्य उपयोगिता फ़ंक्शंस
 function getTodayISO() {
   const now = new Date();
   const y = now.getFullYear();
@@ -22,10 +21,33 @@ function getDayNameFromISO(dateStr, lang = "hi") {
   return lang === "en" ? ENGLISH_DAYS[dt.getDay()] : HINDI_DAYS[dt.getDay()];
 }
 
+function escapeCsvCell(val) {
+  const str = String(val ?? "");
+  return `"${str.replace(/"/g, '""')}"`;
+}
+
+function downloadExcelCsv(filename, headers, rows) {
+  const bom = "\uFEFF";
+  const csvLines = [
+    headers.map(escapeCsvCell).join(","),
+    ...rows.map((r) => r.map(escapeCsvCell).join(","))
+  ];
+  const blob = new Blob([bom + csvLines.join("\r\n")], {
+    type: "text/csv;charset=utf-8;"
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const page = document.body.dataset.page;
 
-  // लॉगआउट बटन (यदि मौजूद हो)
   const logoutBtn = document.getElementById("logout-btn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", async () => {
@@ -34,7 +56,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Auth स्टेट जांच: बिना लॉगिन के protected पेज खुलने पर index.html पर भेजें
   auth.onAuthStateChanged((user) => {
     if (page === "login") {
       if (user) {
@@ -57,7 +78,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // लॉगिन पेज हैंडलर
   if (page === "login") {
     const loginForm = document.getElementById("login-form");
     const loginError = document.getElementById("login-error");
@@ -100,20 +120,32 @@ async function initHomePage(user) {
   }
 }
 
-// ==================== ATTENDANCE PAGE (FACE AUTH) ====================
+// ==================== ATTENDANCE PAGE ====================
 function initAttendancePage() {
   const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
   const statusBadge = document.getElementById("model-status");
-  const video = document.getElementById("video");
-  const overlay = document.getElementById("overlay");
+
+  // उपस्थिति कैमरा एलिमेंट्स
+  const attVideo = document.getElementById("att-video");
+  const attOverlay = document.getElementById("att-overlay");
   const cameraModeLabel = document.getElementById("camera-mode-label");
   const cameraFeedback = document.getElementById("camera-feedback");
-  const stopCamBtn = document.getElementById("stop-camera-btn");
+  const stopAttCamBtn = document.getElementById("stop-camera-btn");
+
+  // Pop-up कैमरा एलिमेंट्स
+  const popupModal = document.getElementById("camera-popup-modal");
+  const popupTitle = document.getElementById("popup-title");
+  const popupVideo = document.getElementById("popup-video");
+  const popupOverlay = document.getElementById("popup-overlay");
+  const popupFeedback = document.getElementById("popup-feedback");
+  const closePopupBtn = document.getElementById("close-popup-btn");
+  const popupCaptureSaveBtn = document.getElementById("popup-capture-save-btn");
 
   let modelsLoaded = false;
-  let stream = null;
+  let attStream = null;
+  let popupStream = null;
   let scanInterval = null;
-  let currentMode = null; // "student-att" | "cook-att" | "student-reg" | "cook-reg"
+  let popupTarget = null; // "student" | "cook"
 
   let studentsCache = [];
   let cooksCache = [];
@@ -175,13 +207,13 @@ function initAttendancePage() {
       cookListEl.appendChild(li);
     });
 
-    const presentStuNames = studentsCache
+    const presentStuItems = studentsCache
       .filter((s) => presentStudentIds.has(s.id))
-      .map((s) => `${s.name} (कक्षा ${s.class})`);
-    document.getElementById("present-students-count").textContent = String(presentStuNames.length);
+      .map((s) => `${s.name} (कक्षा ${s.class}, क्र. ${s.rollNo || "-"})`);
+    document.getElementById("present-students-count").textContent = String(presentStuItems.length);
     const stuUl = document.getElementById("present-students-list");
     stuUl.innerHTML = "";
-    presentStuNames.forEach((label) => {
+    presentStuItems.forEach((label) => {
       const li = document.createElement("li");
       li.textContent = label;
       stuUl.appendChild(li);
@@ -200,45 +232,41 @@ function initAttendancePage() {
     });
   }
 
-  function stopCamera() {
+  // ---- उपस्थिति कैमरा कंट्रोल ----
+  function stopAttendanceCamera() {
     if (scanInterval) {
       clearInterval(scanInterval);
       scanInterval = null;
     }
-    if (stream) {
-      stream.getTracks().forEach((t) => t.stop());
-      stream = null;
+    if (attStream) {
+      attStream.getTracks().forEach((t) => t.stop());
+      attStream = null;
     }
-    video.srcObject = null;
-    const ctx = overlay.getContext("2d");
-    ctx.clearRect(0, 0, overlay.width, overlay.height);
-    currentMode = null;
-    cameraModeLabel.textContent = "कैमरा बंद है";
-    stopCamBtn.classList.add("hidden");
+    attVideo.srcObject = null;
+    const ctx = attOverlay.getContext("2d");
+    ctx.clearRect(0, 0, attOverlay.width, attOverlay.height);
+    cameraModeLabel.textContent = "उपस्थिति कैमरा बंद है";
+    stopAttCamBtn.classList.add("hidden");
   }
 
-  async function startCamera(mode, labelText) {
+  async function startAttendanceCamera(mode, labelText) {
     if (!modelsLoaded) {
       cameraFeedback.textContent = "कृपया प्रतीक्षा करें, फेस मॉडल अभी लोड हो रहे हैं...";
       return;
     }
-    stopCamera();
-    currentMode = mode;
+    stopAttendanceCamera();
     cameraModeLabel.textContent = labelText;
-    stopCamBtn.classList.remove("hidden");
+    stopAttCamBtn.classList.remove("hidden");
     cameraFeedback.textContent = "कैमरा शुरू हो रहा है...";
 
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
+      attStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" },
         audio: false
       });
-      video.srcObject = stream;
+      attVideo.srcObject = attStream;
       cameraFeedback.textContent = "चेहरे को कैमरे के सामने रखें।";
-
-      if (mode === "student-att" || mode === "cook-att") {
-        startRecognitionLoop(mode);
-      }
+      startRecognitionLoop(mode);
     } catch (err) {
       cameraFeedback.textContent = "कैमरा अनुमति नहीं मिली या डिवाइस में कैमरा उपलब्ध नहीं है।";
       console.error(err);
@@ -258,21 +286,21 @@ function initAttendancePage() {
     const matcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
 
     scanInterval = setInterval(async () => {
-      if (!video.videoWidth || !video.videoHeight) return;
-      overlay.width = video.videoWidth;
-      overlay.height = video.videoHeight;
+      if (!attVideo.videoWidth || !attVideo.videoHeight) return;
+      attOverlay.width = attVideo.videoWidth;
+      attOverlay.height = attVideo.videoHeight;
 
       const detections = await faceapi
-        .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+        .detectAllFaces(attVideo, new faceapi.TinyFaceDetectorOptions())
         .withFaceLandmarks()
         .withFaceDescriptors();
 
-      const ctx = overlay.getContext("2d");
-      ctx.clearRect(0, 0, overlay.width, overlay.height);
+      const ctx = attOverlay.getContext("2d");
+      ctx.clearRect(0, 0, attOverlay.width, attOverlay.height);
 
       const resized = faceapi.resizeResults(detections, {
-        width: overlay.width,
-        height: overlay.height
+        width: attOverlay.width,
+        height: attOverlay.height
       });
 
       for (const det of resized) {
@@ -295,7 +323,7 @@ function initAttendancePage() {
   async function markPresent(mode, person) {
     if (mode === "student-att") {
       if (presentStudentIds.has(person.id)) {
-        cameraFeedback.textContent = `${person.name} (कक्षा ${person.class}) की उपस्थिति पहले ही दर्ज है।`;
+        cameraFeedback.textContent = `${person.name} (कक्षा ${person.class}, क्र. ${person.rollNo || "-"}) की उपस्थिति पहले ही दर्ज है।`;
         return;
       }
       presentStudentIds.add(person.id);
@@ -307,7 +335,7 @@ function initAttendancePage() {
         },
         { merge: true }
       );
-      cameraFeedback.textContent = `उपस्थित दर्ज: ${person.name} (कक्षा ${person.class})`;
+      cameraFeedback.textContent = `उपस्थित दर्ज: ${person.name} (कक्षा ${person.class}, क्र. ${person.rollNo || "-"})`;
     } else {
       if (presentCookIds.has(person.id)) {
         cameraFeedback.textContent = `रसोइया ${person.name} की उपस्थिति पहले ही दर्ज है।`;
@@ -327,101 +355,269 @@ function initAttendancePage() {
     renderAttendanceUI();
   }
 
-  async function captureSingleDescriptor() {
-    if (!video.srcObject || !video.videoWidth) {
-      throw new Error("पहले रजिस्ट्रेशन कैमरा खोलें।");
+  // ---- Pop-up कैमरा कंट्रोल ----
+  async function openPopupCamera(target) {
+    if (!modelsLoaded) {
+      alert("कृपया प्रतीक्षा करें, फेस मॉडल अभी लोड हो रहे हैं...");
+      return;
     }
+
+    if (target === "student") {
+      const name = document.getElementById("student-name").value.trim();
+      const fatherName = document.getElementById("student-father").value.trim();
+      const studentClass = document.getElementById("student-class").value;
+      const rollNo = document.getElementById("student-roll").value;
+      if (!name || !fatherName || !studentClass || !rollNo) {
+        document.getElementById("student-reg-msg").textContent =
+          "कृपया पहले बच्चे का नाम, पिता का नाम, कक्षा और क्रमांक भरें, फिर कैमरा Pop-up खोलें।";
+        return;
+      }
+    } else if (target === "cook") {
+      const cookName = document.getElementById("cook-name").value.trim();
+      if (!cookName) {
+        document.getElementById("cook-reg-msg").textContent = "कृपया पहले रसोइए का नाम लिखें।";
+        return;
+      }
+      if (cooksCache.length >= 4) {
+        document.getElementById("cook-reg-msg").textContent = "अधिकतम 4 रसोइए ही रजिस्टर किए जा सकते हैं।";
+        return;
+      }
+    }
+
+    popupTarget = target;
+    popupTitle.textContent =
+      target === "student" ? "नया बच्चा — चेहरा कैप्चर Pop-up" : "रसोइया — चेहरा कैप्चर Pop-up";
+    popupFeedback.textContent = "कैमरा शुरू हो रहा है...";
+    popupModal.classList.remove("hidden");
+
+    try {
+      popupStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+        audio: false
+      });
+      popupVideo.srcObject = popupStream;
+      popupFeedback.textContent = "चेहरे को कैमरे के सामने रखें और नीचे 'चेहरा कैप्चर और सेव करें' दबाएं।";
+    } catch (err) {
+      popupFeedback.textContent = "कैमरा शुरू नहीं हो सका। अनुमति जांचें।";
+      console.error(err);
+    }
+  }
+
+  function closePopupCamera() {
+    if (popupStream) {
+      popupStream.getTracks().forEach((t) => t.stop());
+      popupStream = null;
+    }
+    popupVideo.srcObject = null;
+    const ctx = popupOverlay.getContext("2d");
+    ctx.clearRect(0, 0, popupOverlay.width, popupOverlay.height);
+    popupModal.classList.add("hidden");
+    popupTarget = null;
+  }
+
+  async function capturePopupDescriptor() {
+    if (!popupVideo.srcObject || !popupVideo.videoWidth) {
+      throw new Error("Pop-up कैमरा तैयार नहीं है।");
+    }
+    popupOverlay.width = popupVideo.videoWidth;
+    popupOverlay.height = popupVideo.videoHeight;
+
     const detection = await faceapi
-      .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+      .detectSingleFace(popupVideo, new faceapi.TinyFaceDetectorOptions())
       .withFaceLandmarks()
       .withFaceDescriptor();
 
     if (!detection) {
-      throw new Error("चेहरा स्पष्ट नहीं दिखा, कृपया सीधे कैमरे की ओर देखें और पुनः प्रयास करें।");
+      throw new Error("चेहरा स्पष्ट नहीं दिखा, सीधे कैमरे की ओर देखें।");
     }
+
+    const ctx = popupOverlay.getContext("2d");
+    ctx.clearRect(0, 0, popupOverlay.width, popupOverlay.height);
+    const box = detection.detection.box;
+    ctx.strokeStyle = "#16a34a";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(box.x, box.y, box.width, box.height);
+
     return Array.from(detection.descriptor);
   }
 
-  stopCamBtn.addEventListener("click", stopCamera);
+  async function saveFromPopup() {
+    try {
+      popupFeedback.textContent = "चेहरा स्कैन और सेव किया जा रहा है...";
+      const descriptorArr = await capturePopupDescriptor();
 
+      if (popupTarget === "student") {
+        const name = document.getElementById("student-name").value.trim();
+        const fatherName = document.getElementById("student-father").value.trim();
+        const studentClass = document.getElementById("student-class").value;
+        const rollNo = Number(document.getElementById("student-roll").value);
+
+        const docRef = await db.collection("students").add({
+          name,
+          fatherName,
+          class: studentClass,
+          rollNo,
+          descriptor: descriptorArr
+        });
+
+        studentsCache.push({
+          id: docRef.id,
+          name,
+          fatherName,
+          class: studentClass,
+          rollNo,
+          descriptor: new Float32Array(descriptorArr)
+        });
+
+        document.getElementById("register-student-form").reset();
+        renderAttendanceUI();
+        document.getElementById("student-reg-msg").textContent =
+          `${name} (पिता: ${fatherName}, कक्षा ${studentClass}, क्र. ${rollNo}) सफलतापूर्वक सेव हो गया।`;
+      } else if (popupTarget === "cook") {
+        const name = document.getElementById("cook-name").value.trim();
+        const docRef = await db.collection("cooks").add({
+          name,
+          descriptor: descriptorArr
+        });
+
+        cooksCache.push({
+          id: docRef.id,
+          name,
+          descriptor: new Float32Array(descriptorArr)
+        });
+
+        document.getElementById("register-cook-form").reset();
+        renderAttendanceUI();
+        document.getElementById("cook-reg-msg").textContent = `रसोइया ${name} सफलतापूर्वक सेव हो गए।`;
+      }
+
+      closePopupCamera();
+    } catch (err) {
+      popupFeedback.textContent = err.message;
+    }
+  }
+
+  stopAttCamBtn.addEventListener("click", stopAttendanceCamera);
   document.getElementById("start-student-att-btn").addEventListener("click", () => {
-    startCamera("student-att", "बच्चों की उपस्थिति स्कैन हो रही है");
+    startAttendanceCamera("student-att", "बच्चों की उपस्थिति स्कैन हो रही है");
   });
-
   document.getElementById("start-cook-att-btn").addEventListener("click", () => {
-    startCamera("cook-att", "रसोइयों की उपस्थिति स्कैन हो रही है");
+    startAttendanceCamera("cook-att", "रसोइयों की उपस्थिति स्कैन हो रही है");
   });
 
-  document.getElementById("open-student-reg-cam-btn").addEventListener("click", () => {
-    startCamera("student-reg", "नया बच्चा रजिस्ट्रेशन कैमरा");
+  document.getElementById("open-student-popup-btn").addEventListener("click", () => {
+    openPopupCamera("student");
   });
-
-  document.getElementById("open-cook-reg-cam-btn").addEventListener("click", () => {
-    startCamera("cook-reg", "रसोइया रजिस्ट्रेशन कैमरा");
-  });
-
-  // बच्चा रजिस्ट्रेशन
-  document.getElementById("register-student-form").addEventListener("submit", async (e) => {
+  document.getElementById("register-student-form").addEventListener("submit", (e) => {
     e.preventDefault();
-    const msgEl = document.getElementById("student-reg-msg");
-    const name = document.getElementById("student-name").value.trim();
-    const studentClass = document.getElementById("student-class").value;
-
-    try {
-      msgEl.textContent = "चेहरा स्कैन किया जा रहा है...";
-      const descriptorArr = await captureSingleDescriptor();
-      const docRef = await db.collection("students").add({
-        name,
-        class: studentClass,
-        descriptor: descriptorArr
-      });
-
-      studentsCache.push({
-        id: docRef.id,
-        name,
-        class: studentClass,
-        descriptor: new Float32Array(descriptorArr)
-      });
-
-      e.target.reset();
-      renderAttendanceUI();
-      msgEl.textContent = `${name} (कक्षा ${studentClass}) सफलतापूर्वक रजिस्टर हो गया।`;
-    } catch (err) {
-      msgEl.textContent = err.message;
-    }
+    openPopupCamera("student");
   });
 
-  // रसोइया रजिस्ट्रेशन (अधिकतम 4)
-  document.getElementById("register-cook-form").addEventListener("submit", async (e) => {
+  document.getElementById("open-cook-popup-btn").addEventListener("click", () => {
+    openPopupCamera("cook");
+  });
+  document.getElementById("register-cook-form").addEventListener("submit", (e) => {
     e.preventDefault();
-    const msgEl = document.getElementById("cook-reg-msg");
-    const name = document.getElementById("cook-name").value.trim();
+    openPopupCamera("cook");
+  });
 
-    if (cooksCache.length >= 4) {
-      msgEl.textContent = "अधिकतम 4 रसोइए ही रजिस्टर किए जा सकते हैं।";
-      return;
+  closePopupBtn.addEventListener("click", closePopupCamera);
+  popupCaptureSaveBtn.addEventListener("click", saveFromPopup);
+
+  // ---- Date-wise Excel डाउनलोड ----
+  const excelDateInput = document.getElementById("excel-date-input");
+  if (excelDateInput) {
+    excelDateInput.value = today;
+  }
+
+  async function fetchAttendanceSetsForDate(targetDate) {
+    if (!targetDate || targetDate === today) {
+      return {
+        dateStr: today,
+        studentSet: presentStudentIds,
+        cookSet: presentCookIds
+      };
     }
+    const doc = await db.collection("attendance").doc(targetDate).get();
+    const data = doc.exists ? doc.data() : { students: [], cooks: [] };
+    return {
+      dateStr: targetDate,
+      studentSet: new Set(data.students || []),
+      cookSet: new Set(data.cooks || [])
+    };
+  }
 
-    try {
-      msgEl.textContent = "चेहरा स्कैन किया जा रहा है...";
-      const descriptorArr = await captureSingleDescriptor();
-      const docRef = await db.collection("cooks").add({
-        name,
-        descriptor: descriptorArr
-      });
+  function buildStudentRows(dateStr, studentSet) {
+    const sorted = [...studentsCache].sort((a, b) => {
+      const cDiff = Number(a.class) - Number(b.class);
+      if (cDiff !== 0) return cDiff;
+      return Number(a.rollNo || 0) - Number(b.rollNo || 0);
+    });
 
-      cooksCache.push({
-        id: docRef.id,
-        name,
-        descriptor: new Float32Array(descriptorArr)
-      });
+    return sorted.map((s) => [
+      "GMS HARIPURA 1 TO 8",
+      dateStr,
+      "Student",
+      s.class,
+      s.rollNo || "",
+      s.name,
+      s.fatherName || "",
+      studentSet.has(s.id) ? "Present" : "Absent"
+    ]);
+  }
 
-      e.target.reset();
-      renderAttendanceUI();
-      msgEl.textContent = `रसोइया ${name} सफलतापूर्वक रजिस्टर हो गए।`;
-    } catch (err) {
-      msgEl.textContent = err.message;
-    }
+  function buildCookRows(dateStr, cookSet) {
+    return cooksCache.map((c) => [
+      "GMS HARIPURA 1 TO 8",
+      dateStr,
+      "Cook",
+      "",
+      "",
+      c.name,
+      "",
+      cookSet.has(c.id) ? "Present" : "Absent"
+    ]);
+  }
+
+  const excelHeaders = [
+    "School",
+    "Date",
+    "Category",
+    "Class",
+    "Roll No.",
+    "Name",
+    "Father Name",
+    "Attendance Status"
+  ];
+
+  document.getElementById("download-student-excel-btn").addEventListener("click", async () => {
+    const chosenDate = (excelDateInput && excelDateInput.value) || today;
+    const { dateStr, studentSet } = await fetchAttendanceSetsForDate(chosenDate);
+    downloadExcelCsv(
+      `GMS-Haripura-Students-Attendance-${dateStr}.csv`,
+      excelHeaders,
+      buildStudentRows(dateStr, studentSet)
+    );
+  });
+
+  document.getElementById("download-cook-excel-btn").addEventListener("click", async () => {
+    const chosenDate = (excelDateInput && excelDateInput.value) || today;
+    const { dateStr, cookSet } = await fetchAttendanceSetsForDate(chosenDate);
+    downloadExcelCsv(
+      `GMS-Haripura-Cooks-Attendance-${dateStr}.csv`,
+      excelHeaders,
+      buildCookRows(dateStr, cookSet)
+    );
+  });
+
+  document.getElementById("download-all-excel-btn").addEventListener("click", async () => {
+    const chosenDate = (excelDateInput && excelDateInput.value) || today;
+    const { dateStr, studentSet, cookSet } = await fetchAttendanceSetsForDate(chosenDate);
+    downloadExcelCsv(
+      `GMS-Haripura-Complete-Attendance-${dateStr}.csv`,
+      excelHeaders,
+      [...buildStudentRows(dateStr, studentSet), ...buildCookRows(dateStr, cookSet)]
+    );
   });
 
   loadModels();
@@ -500,7 +696,6 @@ function initMdmPage() {
     }
   });
 
-  // दैनिक MDM एंट्री सेव करें
   document.getElementById("mdm-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     mdmMsg.textContent = "";
@@ -520,7 +715,7 @@ function initMdmPage() {
         menu: menuVal,
         count1To5,
         count6To8,
-        total: count1To5 + count6To8,
+        total: count1To5 + count68,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
@@ -534,7 +729,6 @@ function initMdmPage() {
     }
   });
 
-  // मासिक PDF रिपोर्ट डाउनलोड (MDM प्रभारी के हस्ताक्षर सहित)
   document.getElementById("download-mdm-pdf-btn").addEventListener("click", async () => {
     reportMsg.textContent = "";
     const monthStr = monthInput.value;
@@ -552,7 +746,7 @@ function initMdmPage() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-    const schoolTitle = schoolNameInput.value.trim() || "School MDM Monthly Report";
+    const schoolTitle = schoolNameInput.value.trim() || "GMS HARIPURA 1 TO 8";
     doc.setFontSize(14);
     doc.text(schoolTitle, 14, 16);
     doc.setFontSize(11);
@@ -600,7 +794,6 @@ function initMdmPage() {
     const pageHeight = doc.internal.pageSize.getHeight();
     const sigY = finalY > pageHeight - 25 ? pageHeight - 20 : finalY;
 
-    // MDM प्रभारी के हस्ताक्षर का कॉलम
     doc.setFontSize(10);
     doc.text("_________________________", 14, sigY);
     doc.text("MDM Prabhari Signature", 14, sigY + 6);
