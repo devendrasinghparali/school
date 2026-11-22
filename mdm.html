@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MDM एंट्री व रिपोर्ट | शासकीय विद्यालय प्रबंधन प्रणाली</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script defer src="firebase-config.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body data-page="mdm">
+  <header class="topbar">
+    <div>
+      <h1>मध्याह्न भोजन (MDM) प्रबंधन</h1>
+      <p class="subtitle">दैनिक भोजन एंट्री व मासिक रिपोर्ट</p>
+    </div>
+    <div class="header-actions">
+      <a href="home.html" class="btn btn-secondary btn-sm">होम</a>
+      <a href="attendance.html" class="btn btn-primary btn-sm">उपस्थिति</a>
+      <button id="logout-btn" class="btn btn-danger btn-sm">लॉगआउट</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="grid-2">
+      <!-- दैनिक MDM एंट्री -->
+      <div class="card">
+        <h3>दैनिक MDM एंट्री</h3>
+        <form id="mdm-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="mdm-date">दिनांक</label>
+              <input type="date" id="mdm-date" required />
+            </div>
+            <div class="form-group">
+              <label for="mdm-day">वार (दिन)</label>
+              <input type="text" id="mdm-day" readonly />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="mdm-menu">मेनू</label>
+            <input type="text" id="mdm-menu" required placeholder="जैसे: दाल-चावल, रोटी-सब्जी, हलवा" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="mdm-count-1-5">खाना खाने वाले बच्चे (कक्षा 1–5)</label>
+              <input type="number" id="mdm-count-1-5" min="0" value="0" required />
+            </div>
+            <div class="form-group">
+              <label for="mdm-count-6-8">खाना खाने वाले बच्चे (कक्षा 6–8)</label>
+              <input type="number" id="mdm-count-6-8" min="0" value="0" required />
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary full-width">MDM एंट्री सेव करें</button>
+        </form>
+        <p id="mdm-msg" class="feedback-text"></p>
+      </div>
+
+      <!-- मासिक रिपोर्ट डाउनलोड -->
+      <div class="card">
+        <h3>मासिक MDM रिपोर्ट डाउनलोड</h3>
+        <p class="hint">चयनित माह की रिपोर्ट में दिनांक, वार, मेनू, लाभार्थी संख्या और नीचे <strong>MDM प्रभारी के हस्ताक्षर</strong> का कॉलम शामिल होगा।</p>
+
+        <div class="form-group">
+          <label for="report-month">माह चुनें</label>
+          <input type="month" id="report-month" required />
+        </div>
+
+        <div class="form-group">
+          <label for="school-name-input">विद्यालय का नाम</label>
+          <input type="text" id="school-name-input" value="शासकीय विद्यालय (कक्षा 1 से 8)" />
+        </div>
+
+        <button id="download-mdm-pdf-btn" class="btn btn-success full-width">मासिक रिपोर्ट PDF डाउनलोड करें</button>
+        <p id="report-msg" class="feedback-text"></p>
+      </div>
+    </section>
+
+    <!-- चयनित माह की झलक -->
+    <section class="card">
+      <h3>चयनित माह के रिकॉर्ड</h3>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>दिनांक</th>
+              <th>वार</th>
+              <th>मेनू</th>
+              <th>कक्षा 1–5</th>
+              <th>कक्षा 6–8</th>
+              <th>कुल</th>
+            </tr>
+          </thead>
+          <tbody id="mdm-month-tbody">
+            <tr><td colspan="6" class="hint">डेटा लोड हो रहा है...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
