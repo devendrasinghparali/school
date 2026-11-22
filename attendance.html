@@ -5,18 +5,219 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GMS HARIPURA 1 TO 8 | बच्चों की उपस्थिति दर्ज करें</title>
 
-  <link rel="stylesheet" href="style.css" />
-
   <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
   <script defer src="firebase-config.js"></script>
-  <script defer src="app.js"></script>
+
+  <style>
+    :root {
+      --primary: #1d4ed8;
+      --primary-dark: #1e3a8a;
+      --success: #15803d;
+      --danger: #b91c1c;
+      --secondary: #334155;
+      --bg: #f1f5f9;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #cbd5e1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Devanagari", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.45;
+    }
+
+    .hidden { display: none !important; }
+
+    .topbar {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      color: #ffffff;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .school-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 9px;
+      border-radius: 999px;
+      display: inline-block;
+      margin-bottom: 3px;
+    }
+
+    .topbar h1 { font-size: 1.25rem; font-weight: 700; }
+
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    .container {
+      max-width: 1200px;
+      margin: 18px auto 36px;
+      padding: 0 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 3px 14px rgba(15, 23, 42, 0.06);
+      border: 1px solid var(--border);
+    }
+
+    .att-top-section {
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 820px) {
+      .att-top-section { grid-template-columns: 1fr; }
+    }
+
+    .camera-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      background: #0f172a;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid #93c5fd;
+    }
+
+    .large-video-wrapper { aspect-ratio: 16 / 10; min-height: 290px; }
+    .modal-video { aspect-ratio: 4 / 3; min-height: 230px; }
+
+    .video-wrapper video,
+    .video-wrapper canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .side-att-actions {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .side-btn-group { display: flex; flex-direction: column; gap: 12px; margin: 12px 0 16px; }
+
+    .mini-summary {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hint { font-size: 0.88rem; color: var(--muted); margin-bottom: 10px; }
+    .feedback-text { margin-top: 8px; font-size: 0.9rem; font-weight: 600; color: var(--text); }
+
+    .report-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .toolbar-controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    .toolbar-controls input,
+    .toolbar-controls select {
+      width: auto;
+      min-width: 150px;
+      padding: 8px 10px;
+      font-size: 0.88rem;
+    }
+
+    .table-responsive { overflow-x: auto; }
+
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; background: #ffffff; }
+    .data-table th, .data-table td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; }
+    .data-table th { background: #d97706; color: #ffffff; font-weight: 700; }
+    .data-table tbody tr:nth-child(even) { background: #f8fafc; }
+
+    .badge-present {
+      display: inline-block; background: #dcfce7; color: #166534; border: 1px solid #86efac;
+      padding: 2px 8px; border-radius: 999px; font-size: 0.8rem; font-weight: 700;
+    }
+
+    .badge-absent {
+      display: inline-block; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;
+      padding: 2px 8px; border-radius: 999px; font-size: 0.8rem; font-weight: 700;
+    }
+
+    .form-group { margin-bottom: 12px; width: 100%; }
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+    label { display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 4px; }
+
+    input, select {
+      width: 100%; padding: 9px 11px; border: 1px solid #cbd5e1;
+      border-radius: 8px; font-size: 0.92rem; background: #ffffff;
+    }
+
+    .btn {
+      display: inline-block; text-align: center; text-decoration: none; border: none;
+      border-radius: 8px; padding: 10px 14px; font-size: 0.92rem; font-weight: 600; cursor: pointer;
+    }
+
+    .btn-sm { padding: 7px 11px; font-size: 0.84rem; }
+    .full-width { width: 100%; }
+    .btn-primary { background: var(--primary); color: #ffffff; }
+    .btn-success { background: var(--success); color: #ffffff; }
+    .btn-secondary { background: var(--secondary); color: #ffffff; }
+    .btn-danger { background: var(--danger); color: #ffffff; }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.72);
+      display: flex; justify-content: center; align-items: center; padding: 14px; z-index: 999;
+    }
+
+    .modal-card {
+      background: #ffffff; width: 100%; max-width: 720px; border-radius: 14px;
+      padding: 18px; box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35); border: 1px solid var(--border);
+    }
+
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+
+    @media (max-width: 680px) {
+      .modal-grid { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
-<body data-page="attendance">
+<body>
   <header class="topbar">
     <div>
       <span class="school-tag">GMS HARIPURA 1 TO 8</span>
@@ -27,12 +228,11 @@
       <button type="button" id="open-add-cook-btn" class="btn btn-success btn-sm">रसोइए ऐड करे</button>
       <a href="home.html" class="btn btn-secondary btn-sm">होम</a>
       <a href="mdm.html" class="btn btn-secondary btn-sm">MDM</a>
-      <button id="logout-btn" class="btn btn-danger btn-sm">लॉगआउट</button>
+      <button type="button" id="logout-btn" class="btn btn-danger btn-sm">लॉगआउट</button>
     </div>
   </header>
 
   <main class="container">
-    <!-- बड़ा कैमरा बॉक्स + साइड में दोनों उपस्थिति बटन -->
     <section class="card att-top-section">
       <div class="large-camera-box">
         <div class="camera-header">
@@ -61,17 +261,15 @@
       </div>
     </section>
 
-    <!-- कैमरा के जस्ट नीचे: उपस्थित और अनुपस्थित दोनों की टेबल रिपोर्ट + Excel डाउनलोड -->
-    <section class="card report-table-card">
+    <section class="card">
       <div class="report-toolbar">
         <div>
           <h3>उपस्थित व अनुपस्थित रिपोर्ट (बच्चे व रसोइया)</h3>
           <p class="hint" style="margin-bottom: 0;">नीचे सभी बच्चों और रसोइयों की उपस्थिति व अनुपस्थिति की सूची दिख रही है।</p>
         </div>
-
         <div class="toolbar-controls">
-          <input type="date" id="excel-date-input" aria-label="तारीख चुनें" />
-          <select id="report-filter-select" aria-label="स्थिति चुनें">
+          <input type="date" id="excel-date-input" />
+          <select id="report-filter-select">
             <option value="all">सभी (उपस्थित व अनुपस्थित)</option>
             <option value="Present">केवल उपस्थित</option>
             <option value="Absent">केवल अनुपस्थित</option>
@@ -102,9 +300,8 @@
     </section>
   </main>
 
-  <!-- Pop-up Modal: बच्चों को ऐड करे / रसोइए ऐड करे -->
-  <div id="add-person-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-heading">
-    <div class="modal-card wide-modal-card">
+  <div id="add-person-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
       <div class="modal-header">
         <h3 id="modal-heading">बच्चों को ऐड करे</h3>
         <button type="button" id="close-modal-btn" class="btn btn-danger btn-sm">बंद करें ✕</button>
@@ -112,7 +309,6 @@
 
       <div class="modal-grid">
         <div>
-          <!-- बच्चा जोड़ने का फॉर्म -->
           <form id="modal-student-form">
             <div class="form-group">
               <label for="m-student-name">बच्चे का नाम</label>
@@ -145,7 +341,6 @@
             <button type="submit" class="btn btn-success full-width">चेहरा कैप्चर कर सेव करें</button>
           </form>
 
-          <!-- रसोइया जोड़ने का फॉर्म -->
           <form id="modal-cook-form" class="hidden">
             <div class="form-group">
               <label for="m-cook-name">रसोइए का नाम</label>
@@ -166,5 +361,368 @@
       </div>
     </div>
   </div>
+
+  <script>
+    function getTodayISO() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(now.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function downloadExcelCsv(filename, headers, rows) {
+      const bom = "\uFEFF";
+      const csvLines = [
+        headers.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","),
+        ...rows.map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","))
+      ];
+      const blob = new Blob([bom + csvLines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("logout-btn").addEventListener("click", async () => {
+        await auth.signOut();
+        window.location.href = "index.html";
+      });
+
+      auth.onAuthStateChanged((user) => {
+        if (!user) {
+          window.location.href = "index.html";
+          return;
+        }
+        startAttendanceModule();
+      });
+    });
+
+    function startAttendanceModule() {
+      const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
+      const attVideo = document.getElementById("att-video");
+      const attOverlay = document.getElementById("att-overlay");
+      const cameraModeLabel = document.getElementById("camera-mode-label");
+      const cameraFeedback = document.getElementById("camera-feedback");
+      const stopAttCamBtn = document.getElementById("stop-camera-btn");
+      const regStatusMsg = document.getElementById("reg-status-msg");
+
+      const modalBackdrop = document.getElementById("add-person-modal");
+      const modalHeading = document.getElementById("modal-heading");
+      const closeModalBtn = document.getElementById("close-modal-btn");
+      const studentForm = document.getElementById("modal-student-form");
+      const cookForm = document.getElementById("modal-cook-form");
+      const modalFeedback = document.getElementById("modal-feedback");
+      const modalVideo = document.getElementById("modal-video");
+      const modalOverlay = document.getElementById("modal-overlay");
+
+      const excelDateInput = document.getElementById("excel-date-input");
+      const filterSelect = document.getElementById("report-filter-select");
+      const reportTbody = document.getElementById("attendance-report-tbody");
+
+      let modelsLoaded = false;
+      let attStream = null;
+      let modalStream = null;
+      let scanInterval = null;
+      let modalMode = null;
+
+      let studentsCache = [];
+      let cooksCache = [];
+      let presentStudentIds = new Set();
+      let presentCookIds = new Set();
+
+      const today = getTodayISO();
+      excelDateInput.value = today;
+
+      Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+      ]).then(() => {
+        modelsLoaded = true;
+      }).catch((err) => {
+        cameraFeedback.textContent = "फेस मॉडल लोड करने में समस्या आई।";
+        console.error(err);
+      });
+
+      async function loadDataForDate(targetDate) {
+        const [stuSnap, cookSnap, attDoc] = await Promise.all([
+          db.collection("students").get(),
+          db.collection("cooks").get(),
+          db.collection("attendance").doc(targetDate).get()
+        ]);
+
+        studentsCache = stuSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          descriptor: new Float32Array(doc.data().descriptor)
+        }));
+
+        cooksCache = cookSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          descriptor: new Float32Array(doc.data().descriptor)
+        }));
+
+        const attData = attDoc.exists ? attDoc.data() : { students: [], cooks: [] };
+        presentStudentIds = new Set(attData.students || []);
+        presentCookIds = new Set(attData.cooks || []);
+
+        renderTable(targetDate);
+      }
+
+      function getCombinedRows(targetDate) {
+        const sortedStudents = [...studentsCache].sort((a, b) => {
+          const cDiff = Number(a.class) - Number(b.class);
+          return cDiff !== 0 ? cDiff : Number(a.rollNo || 0) - Number(b.rollNo || 0);
+        });
+
+        return [
+          ...sortedStudents.map((s) => ({
+            category: "बच्चा",
+            name: s.name || "",
+            fatherName: s.fatherName || "-",
+            className: s.class ? `कक्षा ${s.class}` : "-",
+            rollNo: s.rollNo || "-",
+            date: targetDate,
+            status: presentStudentIds.has(s.id) ? "Present" : "Absent"
+          })),
+          ...cooksCache.map((c) => ({
+            category: "रसोइया",
+            name: c.name || "",
+            fatherName: "-",
+            className: "-",
+            rollNo: "-",
+            date: targetDate,
+            status: presentCookIds.has(c.id) ? "Present" : "Absent"
+          }))
+        ];
+      }
+
+      function renderTable(targetDate) {
+        document.getElementById("total-students-count").textContent = String(studentsCache.length);
+        document.getElementById("present-students-count").textContent = String(presentStudentIds.size);
+        document.getElementById("total-cooks-count").textContent = String(cooksCache.length);
+        document.getElementById("present-cooks-count").textContent = String(presentCookIds.size);
+
+        const rows = getCombinedRows(targetDate).filter((r) =>
+          filterSelect.value === "all" ? true : r.status === filterSelect.value
+        );
+
+        if (!rows.length) {
+          reportTbody.innerHTML = `<tr><td colspan="8" class="hint">कोई रिकॉर्ड उपलब्ध नहीं है।</td></tr>`;
+          return;
+        }
+
+        reportTbody.innerHTML = "";
+        rows.forEach((r, i) => {
+          const isPresent = r.status === "Present";
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${i + 1}</td>
+            <td>${r.category}</td>
+            <td>${r.name}</td>
+            <td>${r.fatherName}</td>
+            <td>${r.className}</td>
+            <td>${r.rollNo}</td>
+            <td>${r.date}</td>
+            <td><span class="${isPresent ? "badge-present" : "badge-absent"}">${isPresent ? "उपस्थित" : "अनुपस्थित"}</span></td>
+          `;
+          reportTbody.appendChild(tr);
+        });
+      }
+
+      function stopAttCam() {
+        if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+        if (attStream) { attStream.getTracks().forEach((t) => t.stop()); attStream = null; }
+        attVideo.srcObject = null;
+        attOverlay.getContext("2d").clearRect(0, 0, attOverlay.width, attOverlay.height);
+        cameraModeLabel.textContent = "कैमरा तैयार है";
+        stopAttCamBtn.classList.add("hidden");
+      }
+
+      async function startAttCam(mode, labelText) {
+        if (!modelsLoaded) {
+          cameraFeedback.textContent = "कृपया प्रतीक्षा करें, फेस मॉडल लोड हो रहे हैं...";
+          return;
+        }
+        stopAttCam();
+        cameraModeLabel.textContent = labelText;
+        stopAttCamBtn.classList.remove("hidden");
+        cameraFeedback.textContent = "कैमरा खुल रहा है...";
+
+        try {
+          attStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+          attVideo.srcObject = attStream;
+          await attVideo.play();
+          cameraFeedback.textContent = "चेहरे को कैमरे के सामने रखें।";
+          runRecognition(mode);
+        } catch (err) {
+          cameraFeedback.textContent = "कैमरा अनुमति नहीं मिली या कैमरा उपलब्ध नहीं है।";
+        }
+      }
+
+      function runRecognition(mode) {
+        const candidates = mode === "student" ? studentsCache : cooksCache;
+        if (!candidates.length) {
+          cameraFeedback.textContent = "पहले ऊपर से बच्चा या रसोइया ऐड करें।";
+          return;
+        }
+        const matcher = new faceapi.FaceMatcher(
+          candidates.map((item) => new faceapi.LabeledFaceDescriptors(item.id, [item.descriptor])),
+          0.55
+        );
+
+        scanInterval = setInterval(async () => {
+          if (!attVideo.videoWidth || !attVideo.videoHeight) return;
+          attOverlay.width = attVideo.videoWidth;
+          attOverlay.height = attVideo.videoHeight;
+
+          const detections = await faceapi
+            .detectAllFaces(attVideo, new faceapi.TinyFaceDetectorOptions())
+            .withFaceLandmarks()
+            .withFaceDescriptors();
+
+          const ctx = attOverlay.getContext("2d");
+          ctx.clearRect(0, 0, attOverlay.width, attOverlay.height);
+
+          for (const det of faceapi.resizeResults(detections, { width: attOverlay.width, height: attOverlay.height })) {
+            const match = matcher.findBestMatch(det.descriptor);
+            const box = det.detection.box;
+            ctx.strokeStyle = match.label !== "unknown" ? "#16a34a" : "#dc2626";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+            if (match.label !== "unknown") {
+              const person = candidates.find((p) => p.id === match.label);
+              if (person) {
+                if (mode === "student") presentStudentIds.add(person.id);
+                else presentCookIds.add(person.id);
+
+                await db.collection("attendance").doc(today).set({
+                  date: today,
+                  students: Array.from(presentStudentIds),
+                  cooks: Array.from(presentCookIds)
+                }, { merge: true });
+
+                cameraFeedback.textContent = `उपस्थित दर्ज: ${person.name}`;
+                if (excelDateInput.value === today) renderTable(today);
+              }
+            }
+          }
+        }, 900);
+      }
+
+      async function openModal(type) {
+        if (!modelsLoaded) {
+          alert("कृपया प्रतीक्षा करें, फेस मॉडल लोड हो रहे हैं...");
+          return;
+        }
+        stopAttCam();
+        modalMode = type;
+        modalHeading.textContent = type === "student" ? "बच्चों को ऐड करे" : "रसोइए ऐड करे";
+        studentForm.classList.toggle("hidden", type !== "student");
+        cookForm.classList.toggle("hidden", type !== "cook");
+        modalFeedback.textContent = "कैमरा खुल रहा है...";
+        modalBackdrop.classList.remove("hidden");
+
+        try {
+          modalStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+          modalVideo.srcObject = modalStream;
+          await modalVideo.play();
+          modalFeedback.textContent = "जानकारी भरें और कैमरे के सामने चेहरा रखकर सेव दबाएं।";
+        } catch (err) {
+          modalFeedback.textContent = "कैमरा नहीं खुल सका। Camera Permission Allow करें।";
+        }
+      }
+
+      function closeModal() {
+        if (modalStream) { modalStream.getTracks().forEach((t) => t.stop()); modalStream = null; }
+        modalVideo.srcObject = null;
+        modalOverlay.getContext("2d").clearRect(0, 0, modalOverlay.width, modalOverlay.height);
+        modalBackdrop.classList.add("hidden");
+      }
+
+      async function captureDescriptor() {
+        modalOverlay.width = modalVideo.videoWidth;
+        modalOverlay.height = modalVideo.videoHeight;
+        const det = await faceapi
+          .detectSingleFace(modalVideo, new faceapi.TinyFaceDetectorOptions())
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+        if (!det) throw new Error("चेहरा स्पष्ट नहीं दिखा, सीधे कैमरे की ओर देखें।");
+        return Array.from(det.descriptor);
+      }
+
+      studentForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const name = document.getElementById("m-student-name").value.trim();
+        const fatherName = document.getElementById("m-student-father").value.trim();
+        const studentClass = document.getElementById("m-student-class").value;
+        const rollNo = Number(document.getElementById("m-student-roll").value);
+
+        try {
+          modalFeedback.textContent = "चेहरा सेव हो रहा है...";
+          const descriptor = await captureDescriptor();
+          const ref = await db.collection("students").add({ name, fatherName, class: studentClass, rollNo, descriptor });
+          studentsCache.push({ id: ref.id, name, fatherName, class: studentClass, rollNo, descriptor: new Float32Array(descriptor) });
+          studentForm.reset();
+          renderTable(excelDateInput.value || today);
+          regStatusMsg.textContent = `बच्चा जुड़ गया: ${name}`;
+          closeModal();
+        } catch (err) {
+          modalFeedback.textContent = err.message;
+        }
+      });
+
+      cookForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const name = document.getElementById("m-cook-name").value.trim();
+
+        try {
+          modalFeedback.textContent = "चेहरा सेव हो रहा है...";
+          const descriptor = await captureDescriptor();
+          const ref = await db.collection("cooks").add({ name, descriptor });
+          cooksCache.push({ id: ref.id, name, descriptor: new Float32Array(descriptor) });
+          cookForm.reset();
+          renderTable(excelDateInput.value || today);
+          regStatusMsg.textContent = `रसोइया जुड़ गया: ${name}`;
+          closeModal();
+        } catch (err) {
+          modalFeedback.textContent = err.message;
+        }
+      });
+
+      document.getElementById("start-student-att-btn").addEventListener("click", () => startAttCam("student", "बच्चों की उपस्थिति ले"));
+      document.getElementById("start-cook-att-btn").addEventListener("click", () => startAttCam("cook", "रसोई की उपस्थिति ले"));
+      stopAttCamBtn.addEventListener("click", stopAttCam);
+      document.getElementById("open-add-student-btn").addEventListener("click", () => openModal("student"));
+      document.getElementById("open-add-cook-btn").addEventListener("click", () => openModal("cook"));
+      closeModalBtn.addEventListener("click", closeModal);
+
+      excelDateInput.addEventListener("change", () => loadDataForDate(excelDateInput.value || today));
+      filterSelect.addEventListener("change", () => renderTable(excelDateInput.value || today));
+
+      document.getElementById("download-all-excel-btn").addEventListener("click", async () => {
+        const d = excelDateInput.value || today;
+        await loadDataForDate(d);
+        const rows = getCombinedRows(d).map((r, i) => [
+          i + 1, "GMS HARIPURA 1 TO 8", r.category, r.name, r.fatherName, r.className, r.rollNo, r.date, r.status
+        ]);
+        downloadExcelCsv(
+          `GMS-Haripura-Attendance-${d}.csv`,
+          ["Sr. No.", "School", "Category", "Name", "Father Name", "Class", "Roll No.", "Date", "Status"],
+          rows
+        );
+      });
+
+      loadDataForDate(today);
+    }
+  </script>
 </body>
 </html>
