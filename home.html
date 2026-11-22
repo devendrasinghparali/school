@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>होम डैशबोर्ड | शासकीय विद्यालय प्रबंधन प्रणाली</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script defer src="firebase-config.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body data-page="home">
+  <header class="topbar">
+    <div>
+      <h1>शासकीय विद्यालय डैशबोर्ड</h1>
+      <p id="user-email-badge" class="subtitle">लॉगिन सत्यापित हो रहा है...</p>
+    </div>
+    <button id="logout-btn" class="btn btn-danger btn-sm">लॉगआउट</button>
+  </header>
+
+  <main class="container">
+    <!-- त्वरित सारांश -->
+    <section class="grid-3 stats-grid">
+      <div class="card stat-card">
+        <span class="stat-label">आज उपस्थित बच्चे</span>
+        <strong id="dash-students-count" class="stat-value">0</strong>
+      </div>
+      <div class="card stat-card">
+        <span class="stat-label">आज उपस्थित रसोइए (4 में से)</span>
+        <strong id="dash-cooks-count" class="stat-value">0 / 4</strong>
+      </div>
+      <div class="card stat-card">
+        <span class="stat-label">आज MDM लाभार्थी</span>
+        <strong id="dash-mdm-count" class="stat-value">0</strong>
+      </div>
+    </section>
+
+    <!-- मुख्य लिंक्स -->
+    <section class="grid-2 nav-cards">
+      <div class="card link-card">
+        <h2>फेस उपस्थिति व रजिस्ट्रेशन</h2>
+        <p class="hint">कक्षा 1–8 के लगभग 130 बच्चों और 4 रसोइयों की Face Authentication उपस्थिति तथा नया चेहरा रजिस्टर करें।</p>
+        <a href="attendance.html" class="btn btn-primary">उपस्थिति पेज खोलें</a>
+      </div>
+
+      <div class="card link-card">
+        <h2>MDM एंट्री व मासिक रिपोर्ट</h2>
+        <p class="hint">दैनिक भोजन संख्या, वार व मेनू दर्ज करें और महीने की PDF रिपोर्ट (MDM प्रभारी के हस्ताक्षर सहित) डाउनलोड करें।</p>
+        <a href="mdm.html" class="btn btn-success">MDM पेज खोलें</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
