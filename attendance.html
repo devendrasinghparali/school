@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>फेस उपस्थिति | शासकीय विद्यालय प्रबंधन प्रणाली</title>
+  <title>GMS HARIPURA 1 TO 8 | उपस्थिति व रजिस्ट्रेशन</title>
 
   <link rel="stylesheet" href="style.css" />
 
@@ -19,7 +19,8 @@
 <body data-page="attendance">
   <header class="topbar">
     <div>
-      <h1>Face Authentication उपस्थिति</h1>
+      <span class="school-tag">GMS HARIPURA 1 TO 8</span>
+      <h1>Face Authentication उपस्थिति व रजिस्ट्रेशन</h1>
       <p id="model-status" class="status-badge">फेस मॉडल लोड हो रहे हैं...</p>
     </div>
     <div class="header-actions">
@@ -30,25 +31,28 @@
   </header>
 
   <main class="container">
-    <!-- कैमरा पैनल -->
+    <!-- उपस्थिति स्कैनिंग कैमरा पैनल (बच्चे व रसोइया उपस्थिति के लिए) -->
     <section class="card camera-card">
       <div class="camera-header">
-        <strong id="camera-mode-label">कैमरा बंद है</strong>
+        <strong id="camera-mode-label">उपस्थिति कैमरा बंद है</strong>
         <button id="stop-camera-btn" class="btn btn-secondary btn-sm hidden">कैमरा बंद करें</button>
       </div>
       <div class="video-wrapper">
-        <video id="video" autoplay muted playsinline></video>
-        <canvas id="overlay"></canvas>
+        <video id="att-video" autoplay muted playsinline></video>
+        <canvas id="att-overlay"></canvas>
       </div>
-      <p id="camera-feedback" class="feedback-text">उपस्थिति या रजिस्ट्रेशन के लिए नीचे दिया बटन दबाएं।</p>
+      <p id="camera-feedback" class="feedback-text">उपस्थिति लेने के लिए नीचे दिए गए बटन से कैमरा शुरू करें।</p>
     </section>
 
-    <!-- दैनिक उपस्थिति (बच्चे और 4 रसोइए) -->
+    <!-- दैनिक उपस्थिति और Excel डाउनलोड सेक्शन -->
     <section class="grid-2">
       <div class="card">
         <h3>बच्चों की उपस्थिति (कक्षा 1–8)</h3>
         <p class="hint">लगभग 130 बच्चे | आज उपस्थित: <strong id="present-students-count">0</strong></p>
-        <button id="start-student-att-btn" class="btn btn-primary">बच्चों की उपस्थिति कैमरा शुरू करें</button>
+        <div class="btn-row">
+          <button id="start-student-att-btn" class="btn btn-primary">बच्चों का कैमरा शुरू करें</button>
+          <button id="download-student-excel-btn" class="btn btn-success">बच्चे Excel डाउनलोड</button>
+        </div>
         <div class="list-box">
           <h4>आज उपस्थित बच्चे:</h4>
           <ul id="present-students-list" class="chip-list"></ul>
@@ -58,7 +62,10 @@
       <div class="card">
         <h3>रसोइयों की उपस्थिति (4 रसोइए)</h3>
         <p class="hint">कुल 4 रसोइए | आज उपस्थित: <strong id="present-cooks-count">0</strong></p>
-        <button id="start-cook-att-btn" class="btn btn-primary">रसोइयों की उपस्थिति कैमरा शुरू करें</button>
+        <div class="btn-row">
+          <button id="start-cook-att-btn" class="btn btn-primary">रसोइयों का कैमरा शुरू करें</button>
+          <button id="download-cook-excel-btn" class="btn btn-success">रसोइया Excel डाउनलोड</button>
+        </div>
         <div class="list-box">
           <h4>आज उपस्थित रसोइए:</h4>
           <ul id="present-cooks-list" class="chip-list"></ul>
@@ -66,31 +73,56 @@
       </div>
     </section>
 
-    <!-- फेस रजिस्ट्रेशन (बच्चे और रसोइया) -->
+    <!-- पूरा Excel डाउनलोड कार्ड (उपस्थिति पेज में ही) -->
+    <section class="card excel-bar-card">
+      <div>
+        <h3>संपूर्ण दैनिक उपस्थिति Excel डाउनलोड</h3>
+        <p class="hint">आज की तारीख (<span id="today-date-label"></span>) के लिए बच्चों और रसोइयों की पूरी उपस्थिति एक साथ Excel (.csv) में डाउनलोड करें।</p>
+      </div>
+      <div class="btn-row">
+        <button id="download-all-excel-btn" class="btn btn-success">संपूर्ण उपस्थिति Excel डाउनलोड करें</button>
+      </div>
+    </section>
+
+    <!-- रजिस्ट्रेशन सेक्शन (नया बच्चा जोड़ने पर Pop-up कैमरा खुलता है) -->
     <section class="grid-2">
       <div class="card">
-        <h3>नया बच्चा रजिस्टर करें</h3>
+        <h3>नया बच्चा जोड़ें (Pop-up कैमरा के साथ)</h3>
         <form id="register-student-form">
           <div class="form-group">
             <label for="student-name">बच्चे का नाम</label>
             <input type="text" id="student-name" required placeholder="बच्चे का पूरा नाम" />
           </div>
+
           <div class="form-group">
-            <label for="student-class">कक्षा (1 से 8)</label>
-            <select id="student-class" required>
-              <option value="">कक्षा चुनें</option>
-              <option value="1">कक्षा 1</option>
-              <option value="2">कक्षा 2</option>
-              <option value="3">कक्षा 3</option>
-              <option value="4">कक्षा 4</option>
-              <option value="5">कक्षा 5</option>
-              <option value="6">कक्षा 6</option>
-              <option value="7">कक्षा 7</option>
-              <option value="8">कक्षा 8</option>
-            </select>
+            <label for="student-father">पिता का नाम</label>
+            <input type="text" id="student-father" required placeholder="पिता का पूरा नाम" />
           </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="student-class">कक्षा (1 से 8)</label>
+              <select id="student-class" required>
+                <option value="">कक्षा चुनें</option>
+                <option value="1">कक्षा 1</option>
+                <option value="2">कक्षा 2</option>
+                <option value="3">कक्षा 3</option>
+                <option value="4">कक्षा 4</option>
+                <option value="5">कक्षा 5</option>
+                <option value="6">कक्षा 6</option>
+                <option value="7">कक्षा 7</option>
+                <option value="8">कक्षा 8</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="student-roll">कक्षा में क्रमांक (Roll No.)</label>
+              <input type="number" id="student-roll" min="1" required placeholder="जैसे: 1" />
+            </div>
+          </div>
+
           <div class="btn-row">
-            <button type="button" id="open-student-reg-cam-btn" class="btn btn-secondary">कैमरा खोलें</button>
+            <button type="button" id="open-student-popup-btn" class="btn btn-secondary">कैमरा Pop-up खोलें</button>
             <button type="submit" class="btn btn-success">चेहरा स्कैन कर सेव करें</button>
           </div>
         </form>
@@ -108,7 +140,7 @@
             <input type="text" id="cook-name" required placeholder="रसोइए का नाम" />
           </div>
           <div class="btn-row">
-            <button type="button" id="open-cook-reg-cam-btn" class="btn btn-secondary">कैमरा खोलें</button>
+            <button type="button" id="open-cook-popup-btn" class="btn btn-secondary">कैमरा Pop-up खोलें</button>
             <button type="submit" class="btn btn-success">चेहरा स्कैन कर सेव करें</button>
           </div>
         </form>
@@ -120,5 +152,28 @@
       </div>
     </section>
   </main>
+
+  <!-- कैमरा Pop-up Modal (नया बच्चा / रसोइया जोड़ते समय खुलने वाला पॉप-अप) -->
+  <div id="camera-popup-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="popup-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="popup-title">चेहरा रजिस्ट्रेशन कैमरा</h3>
+        <button type="button" id="close-popup-btn" class="btn btn-danger btn-sm">बंद करें ✕</button>
+      </div>
+
+      <div class="video-wrapper modal-video">
+        <video id="popup-video" autoplay muted playsinline></video>
+        <canvas id="popup-overlay"></canvas>
+      </div>
+
+      <p id="popup-feedback" class="feedback-text">चेहरे को कैमरे के सामने स्पष्ट रखें।</p>
+
+      <div class="btn-row modal-actions">
+        <button type="button" id="popup-capture-save-btn" class="btn btn-success full-width">
+          चेहरा कैप्चर और सेव करें
+        </button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
