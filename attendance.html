@@ -31,7 +31,7 @@
   </header>
 
   <main class="container">
-    <!-- उपस्थिति स्कैनिंग कैमरा पैनल (बच्चे व रसोइया उपस्थिति के लिए) -->
+    <!-- उपस्थिति स्कैनिंग कैमरा पैनल -->
     <section class="card camera-card">
       <div class="camera-header">
         <strong id="camera-mode-label">उपस्थिति कैमरा बंद है</strong>
@@ -44,15 +44,12 @@
       <p id="camera-feedback" class="feedback-text">उपस्थिति लेने के लिए नीचे दिए गए बटन से कैमरा शुरू करें।</p>
     </section>
 
-    <!-- दैनिक उपस्थिति और Excel डाउनलोड सेक्शन -->
+    <!-- दैनिक उपस्थिति -->
     <section class="grid-2">
       <div class="card">
         <h3>बच्चों की उपस्थिति (कक्षा 1–8)</h3>
         <p class="hint">लगभग 130 बच्चे | आज उपस्थित: <strong id="present-students-count">0</strong></p>
-        <div class="btn-row">
-          <button id="start-student-att-btn" class="btn btn-primary">बच्चों का कैमरा शुरू करें</button>
-          <button id="download-student-excel-btn" class="btn btn-success">बच्चे Excel डाउनलोड</button>
-        </div>
+        <button id="start-student-att-btn" class="btn btn-primary">बच्चों का कैमरा शुरू करें</button>
         <div class="list-box">
           <h4>आज उपस्थित बच्चे:</h4>
           <ul id="present-students-list" class="chip-list"></ul>
@@ -62,10 +59,7 @@
       <div class="card">
         <h3>रसोइयों की उपस्थिति (4 रसोइए)</h3>
         <p class="hint">कुल 4 रसोइए | आज उपस्थित: <strong id="present-cooks-count">0</strong></p>
-        <div class="btn-row">
-          <button id="start-cook-att-btn" class="btn btn-primary">रसोइयों का कैमरा शुरू करें</button>
-          <button id="download-cook-excel-btn" class="btn btn-success">रसोइया Excel डाउनलोड</button>
-        </div>
+        <button id="start-cook-att-btn" class="btn btn-primary">रसोइयों का कैमरा शुरू करें</button>
         <div class="list-box">
           <h4>आज उपस्थित रसोइए:</h4>
           <ul id="present-cooks-list" class="chip-list"></ul>
@@ -73,14 +67,16 @@
       </div>
     </section>
 
-    <!-- पूरा Excel डाउनलोड कार्ड (उपस्थिति पेज में ही) -->
+    <!-- Date-wise उपस्थिति Excel डाउनलोड सेक्शन -->
     <section class="card excel-bar-card">
-      <div>
-        <h3>संपूर्ण दैनिक उपस्थिति Excel डाउनलोड</h3>
-        <p class="hint">आज की तारीख (<span id="today-date-label"></span>) के लिए बच्चों और रसोइयों की पूरी उपस्थिति एक साथ Excel (.csv) में डाउनलोड करें।</p>
+      <div class="form-group" style="margin-bottom: 0; max-width: 260px;">
+        <label for="excel-date-input">उपस्थिति की तारीख चुनें (Date-wise Excel)</label>
+        <input type="date" id="excel-date-input" />
       </div>
       <div class="btn-row">
-        <button id="download-all-excel-btn" class="btn btn-success">संपूर्ण उपस्थिति Excel डाउनलोड करें</button>
+        <button id="download-student-excel-btn" class="btn btn-success">बच्चे Excel (चयनित तारीख)</button>
+        <button id="download-cook-excel-btn" class="btn btn-success">रसोइया Excel (चयनित तारीख)</button>
+        <button id="download-all-excel-btn" class="btn btn-primary">संपूर्ण Excel (चयनित तारीख)</button>
       </div>
     </section>
 
@@ -153,7 +149,7 @@
     </section>
   </main>
 
-  <!-- कैमरा Pop-up Modal (नया बच्चा / रसोइया जोड़ते समय खुलने वाला पॉप-अप) -->
+  <!-- कैमरा Pop-up Modal -->
   <div id="camera-popup-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="popup-title">
     <div class="modal-card">
       <div class="modal-header">
