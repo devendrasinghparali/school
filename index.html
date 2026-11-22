@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>स्कूल लॉगिन | शासकीय विद्यालय प्रबंधन प्रणाली</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script defer src="firebase-config.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body data-page="login">
+  <header class="topbar">
+    <div>
+      <h1>शासकीय विद्यालय पोर्टल (कक्षा 1–8)</h1>
+      <p class="subtitle">सिंगल स्कूल लॉगिन</p>
+    </div>
+  </header>
+
+  <main class="container center-screen">
+    <section class="card narrow-card">
+      <h2>स्कूल लॉगिन</h2>
+      <p class="hint">कृपया अपना अधिकृत स्कूल ईमेल और पासवर्ड दर्ज करें।</p>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">स्कूल ईमेल आईडी</label>
+          <input type="email" id="login-email" required placeholder="school@example.com" />
+        </div>
+
+        <div class="form-group">
+          <label for="login-password">पासवर्ड</label>
+          <input type="password" id="login-password" required placeholder="••••••••" />
+        </div>
+
+        <button type="submit" class="btn btn-primary full-width">लॉगिन करें</button>
+      </form>
+
+      <p id="login-error" class="error-text"></p>
+    </section>
+  </main>
+</body>
+</html>
