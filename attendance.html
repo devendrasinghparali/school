@@ -1,175 +1,723 @@
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GMS HARIPURA 1 TO 8 | उपस्थिति व रजिस्ट्रेशन</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GMS HARIPURA - उपस्थिति प्रणाली</title>
 
-  <link rel="stylesheet" href="style.css" />
-
-  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
-  <script defer src="firebase-config.js"></script>
-  <script defer src="app.js"></script>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,"Noto Sans Devanagari",sans-serif;
+  background:#f1f5f9;
+  color:#1e293b
+}
+header{
+  background:linear-gradient(135deg,#14532d,#15803d);
+  color:white;
+  padding:24px 15px;
+  text-align:center
+}
+header h1{margin:0;font-size:25px}
+header p{margin:8px 0 0;font-size:14px}
+.container{max-width:950px;margin:auto;padding:15px}
+.card{
+  background:white;
+  border-radius:16px;
+  padding:18px;
+  margin-bottom:16px;
+  box-shadow:0 3px 12px #0000000a
+}
+.stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px
+}
+.stat{
+  background:#f0fdf4;
+  border:1px solid #dcfce7;
+  padding:15px 5px;
+  text-align:center;
+  border-radius:12px
+}
+.stat strong{display:block;font-size:24px;color:#15803d}
+.stat span{font-size:12px}
+h2{font-size:18px;margin-top:0}
+input,select,button{
+  width:100%;
+  padding:12px;
+  border-radius:9px;
+  border:1px solid #cbd5e1;
+  font-size:15px;
+  margin-top:6px
+}
+label{font-size:14px;font-weight:bold;display:block;margin-top:12px}
+button{
+  border:none;
+  background:#15803d;
+  color:white;
+  font-weight:bold;
+  cursor:pointer
+}
+button:disabled{opacity:.5}
+button.secondary{background:#475569}
+button.danger{background:#dc2626}
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px
+}
+.tabs{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-bottom:15px
+}
+.tabs button{padding:11px 5px;font-size:13px}
+.tabs button.active{background:#14532d}
+.hidden{display:none!important}
+video{
+  width:100%;
+  max-width:480px;
+  border-radius:14px;
+  background:#111;
+  display:block;
+  margin:12px auto
+}
+.message{
+  background:#f0fdf4;
+  color:#166534;
+  padding:12px;
+  border-radius:9px;
+  margin-top:10px;
+  white-space:pre-wrap
+}
+.error{background:#fef2f2;color:#991b1b}
+.student{
+  border:1px solid #e2e8f0;
+  padding:12px;
+  border-radius:10px;
+  margin:8px 0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px
+}
+.student small{color:#64748b}
+.student button{width:auto;padding:8px;margin:0}
+.tablewrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:500px}
+th,td{padding:10px;border-bottom:1px solid #e2e8f0;text-align:left;font-size:13px}
+th{background:#f8fafc}
+footer{text-align:center;padding:20px;color:#64748b;font-size:12px}
+@media(max-width:600px){
+ .grid{grid-template-columns:1fr}
+ .stats{grid-template-columns:repeat(3,1fr)}
+ header h1{font-size:21px}
+ .container{padding:10px}
+ .card{padding:14px}
+}
+</style>
 </head>
-<body data-page="attendance">
-  <header class="topbar">
-    <div>
-      <span class="school-tag">GMS HARIPURA 1 TO 8</span>
-      <h1>Face Authentication उपस्थिति व रजिस्ट्रेशन</h1>
-      <p id="model-status" class="status-badge">फेस मॉडल लोड हो रहे हैं...</p>
+
+<body>
+
+<header>
+  <h1>🏫 जी.एम.एस. हरिपुरा</h1>
+  <p>फेस ऑथेंटिकेशन विद्यार्थी उपस्थिति प्रणाली</p>
+</header>
+
+<div class="container">
+
+<div class="card">
+  <div class="stats">
+    <div class="stat">
+      <strong id="totalStudents">0</strong>
+      <span>कुल विद्यार्थी</span>
     </div>
-    <div class="header-actions">
-      <a href="home.html" class="btn btn-secondary btn-sm">होम</a>
-      <a href="mdm.html" class="btn btn-success btn-sm">MDM</a>
-      <button id="logout-btn" class="btn btn-danger btn-sm">लॉगआउट</button>
+    <div class="stat">
+      <strong id="presentCount">0</strong>
+      <span>आज उपस्थित</span>
     </div>
-  </header>
-
-  <main class="container">
-    <!-- उपस्थिति स्कैनिंग कैमरा पैनल -->
-    <section class="card camera-card">
-      <div class="camera-header">
-        <strong id="camera-mode-label">उपस्थिति कैमरा बंद है</strong>
-        <button id="stop-camera-btn" class="btn btn-secondary btn-sm hidden">कैमरा बंद करें</button>
-      </div>
-      <div class="video-wrapper">
-        <video id="att-video" autoplay muted playsinline></video>
-        <canvas id="att-overlay"></canvas>
-      </div>
-      <p id="camera-feedback" class="feedback-text">उपस्थिति लेने के लिए नीचे दिए गए बटन से कैमरा शुरू करें।</p>
-    </section>
-
-    <!-- दैनिक उपस्थिति -->
-    <section class="grid-2">
-      <div class="card">
-        <h3>बच्चों की उपस्थिति (कक्षा 1–8)</h3>
-        <p class="hint">लगभग 130 बच्चे | आज उपस्थित: <strong id="present-students-count">0</strong></p>
-        <button id="start-student-att-btn" class="btn btn-primary">बच्चों का कैमरा शुरू करें</button>
-        <div class="list-box">
-          <h4>आज उपस्थित बच्चे:</h4>
-          <ul id="present-students-list" class="chip-list"></ul>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>रसोइयों की उपस्थिति (4 रसोइए)</h3>
-        <p class="hint">कुल 4 रसोइए | आज उपस्थित: <strong id="present-cooks-count">0</strong></p>
-        <button id="start-cook-att-btn" class="btn btn-primary">रसोइयों का कैमरा शुरू करें</button>
-        <div class="list-box">
-          <h4>आज उपस्थित रसोइए:</h4>
-          <ul id="present-cooks-list" class="chip-list"></ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- Date-wise उपस्थिति Excel डाउनलोड सेक्शन -->
-    <section class="card excel-bar-card">
-      <div class="form-group" style="margin-bottom: 0; max-width: 260px;">
-        <label for="excel-date-input">उपस्थिति की तारीख चुनें (Date-wise Excel)</label>
-        <input type="date" id="excel-date-input" />
-      </div>
-      <div class="btn-row">
-        <button id="download-student-excel-btn" class="btn btn-success">बच्चे Excel (चयनित तारीख)</button>
-        <button id="download-cook-excel-btn" class="btn btn-success">रसोइया Excel (चयनित तारीख)</button>
-        <button id="download-all-excel-btn" class="btn btn-primary">संपूर्ण Excel (चयनित तारीख)</button>
-      </div>
-    </section>
-
-    <!-- रजिस्ट्रेशन सेक्शन -->
-    <section class="grid-2">
-      <div class="card">
-        <h3>नया बच्चा जोड़ें (Pop-up कैमरा के साथ)</h3>
-        <form id="register-student-form">
-          <div class="form-group">
-            <label for="student-name">बच्चे का नाम</label>
-            <input type="text" id="student-name" required placeholder="बच्चे का पूरा नाम" />
-          </div>
-
-          <div class="form-group">
-            <label for="student-father">पिता का नाम</label>
-            <input type="text" id="student-father" required placeholder="पिता का पूरा नाम" />
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="student-class">कक्षा (1 से 8)</label>
-              <select id="student-class" required>
-                <option value="">कक्षा चुनें</option>
-                <option value="1">कक्षा 1</option>
-                <option value="2">कक्षा 2</option>
-                <option value="3">कक्षा 3</option>
-                <option value="4">कक्षा 4</option>
-                <option value="5">कक्षा 5</option>
-                <option value="6">कक्षा 6</option>
-                <option value="7">कक्षा 7</option>
-                <option value="8">कक्षा 8</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="student-roll">कक्षा में क्रमांक (Roll No.)</label>
-              <input type="number" id="student-roll" min="1" required placeholder="जैसे: 1" />
-            </div>
-          </div>
-
-          <div class="btn-row">
-            <button type="button" id="open-student-popup-btn" class="btn btn-secondary">कैमरा Pop-up खोलें</button>
-            <button type="submit" class="btn btn-success">चेहरा स्कैन कर सेव करें</button>
-          </div>
-        </form>
-        <p id="student-reg-msg" class="feedback-text"></p>
-        <div class="list-box">
-          <h4>पंजीकृत बच्चे: <strong id="registered-students-count">0</strong></h4>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>रसोइया रजिस्टर करें (अधिकतम 4)</h3>
-        <form id="register-cook-form">
-          <div class="form-group">
-            <label for="cook-name">रसोइए का नाम</label>
-            <input type="text" id="cook-name" required placeholder="रसोइए का नाम" />
-          </div>
-          <div class="btn-row">
-            <button type="button" id="open-cook-popup-btn" class="btn btn-secondary">कैमरा Pop-up खोलें</button>
-            <button type="submit" class="btn btn-success">चेहरा स्कैन कर सेव करें</button>
-          </div>
-        </form>
-        <p id="cook-reg-msg" class="feedback-text"></p>
-        <div class="list-box">
-          <h4>पंजीकृत रसोइए (<span id="registered-cooks-count">0</span>/4):</h4>
-          <ul id="registered-cooks-list" class="simple-list"></ul>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- कैमरा Pop-up Modal -->
-  <div id="camera-popup-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="popup-title">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3 id="popup-title">चेहरा रजिस्ट्रेशन कैमरा</h3>
-        <button type="button" id="close-popup-btn" class="btn btn-danger btn-sm">बंद करें ✕</button>
-      </div>
-
-      <div class="video-wrapper modal-video">
-        <video id="popup-video" autoplay muted playsinline></video>
-        <canvas id="popup-overlay"></canvas>
-      </div>
-
-      <p id="popup-feedback" class="feedback-text">चेहरे को कैमरे के सामने स्पष्ट रखें।</p>
-
-      <div class="btn-row modal-actions">
-        <button type="button" id="popup-capture-save-btn" class="btn btn-success full-width">
-          चेहरा कैप्चर और सेव करें
-        </button>
-      </div>
+    <div class="stat">
+      <strong id="absentCount">0</strong>
+      <span>अनुपस्थित</span>
     </div>
   </div>
+  <p id="todayText" style="text-align:center;margin-bottom:0"></p>
+</div>
+
+<div class="tabs">
+  <button class="active" onclick="showTab('addTab',this)">➕ विद्यार्थी जोड़ें</button>
+  <button onclick="showTab('faceTab',this)">📷 फेस उपस्थिति</button>
+  <button onclick="showTab('listTab',this)">👨‍🎓 विद्यार्थी सूची</button>
+</div>
+
+<!-- ADD STUDENT -->
+<section id="addTab" class="card">
+<h2>➕ नया विद्यार्थी पंजीयन</h2>
+
+<form id="studentForm">
+
+<label>कक्षा में क्रमांक</label>
+<input id="roll" type="number" min="1" placeholder="जैसे 1" required>
+
+<label>विद्यार्थी का नाम</label>
+<input id="name" type="text" placeholder="विद्यार्थी का पूरा नाम" required>
+
+<label>पिता का नाम</label>
+<input id="father" type="text" placeholder="पिता का पूरा नाम" required>
+
+<label>कक्षा</label>
+<select id="className" required>
+<option value="">कक्षा चुनें</option>
+<option>1</option>
+<option>2</option>
+<option>3</option>
+<option>4</option>
+<option>5</option>
+<option>6</option>
+<option>7</option>
+<option>8</option>
+</select>
+
+<div id="registerMessage"></div>
+
+<button type="submit" id="saveStudentBtn">विद्यार्थी सेव करें</button>
+</form>
+
+<hr>
+
+<h2>📷 चेहरे का पंजीकरण</h2>
+<p>पहले विद्यार्थी का विवरण सेव करें। उसके बाद सूची में जाकर फेस पंजीकरण करें।</p>
+</section>
+
+<!-- FACE ATTENDANCE -->
+<section id="faceTab" class="card hidden">
+<h2>📷 चेहरे से उपस्थिति</h2>
+<p>कैमरे के सामने विद्यार्थी को रखें और पहचान बटन दबाएँ।</p>
+
+<video id="video" autoplay muted playsinline></video>
+
+<button onclick="startCamera()">कैमरा चालू करें</button>
+<button onclick="scanAttendance()" id="scanBtn">चेहरा पहचानें और उपस्थिति लगाएँ</button>
+<button class="secondary" onclick="stopCamera()">कैमरा बंद करें</button>
+
+<div id="faceMessage"></div>
+</section>
+
+<!-- STUDENT LIST -->
+<section id="listTab" class="card hidden">
+<h2>👨‍🎓 विद्यार्थी सूची</h2>
+
+<div class="grid">
+<select id="filterClass" onchange="renderStudents()">
+<option value="">सभी कक्षाएँ</option>
+<option value="1">कक्षा 1</option>
+<option value="2">कक्षा 2</option>
+<option value="3">कक्षा 3</option>
+<option value="4">कक्षा 4</option>
+<option value="5">कक्षा 5</option>
+<option value="6">कक्षा 6</option>
+<option value="7">कक्षा 7</option>
+<option value="8">कक्षा 8</option>
+</select>
+
+<input id="searchStudent" placeholder="नाम खोजें..." oninput="renderStudents()">
+</div>
+
+<div id="studentsList"></div>
+</section>
+
+<section class="card">
+<h2>📋 आज की उपस्थिति</h2>
+<div class="tablewrap">
+<table>
+<thead>
+<tr>
+<th>क्रमांक</th>
+<th>नाम</th>
+<th>कक्षा</th>
+<th>समय</th>
+<th>स्थिति</th>
+</tr>
+</thead>
+<tbody id="attendanceTable"></tbody>
+</table>
+</div>
+</section>
+
+<footer>
+जी.एम.एस. हरिपुरा<br>
+विद्यार्थी उपस्थिति प्रणाली
+</footer>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+
+import {
+ getFirestore,
+ collection,
+ addDoc,
+ getDocs,
+ doc,
+ updateDoc,
+ deleteDoc,
+ query,
+ where
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+import {
+ getAuth,
+ signInAnonymously
+} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+/* FIREBASE CONFIG */
+
+const firebaseConfig = {
+ apiKey: "AIzaSyCJm1WW7M58yG55bGy5Ba-934GonQV5ZFA",
+ authDomain: "new-gms-haripura-59f06.firebaseapp.com",
+ projectId: "new-gms-haripura-59f06",
+ storageBucket: "new-gms-haripura-59f06.firebasestorage.app",
+ messagingSenderId: "845375890121",
+ appId: "1:845375890121:web:58578355d1f9db6636e318"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+/* FACE MODEL */
+
+const MODEL_URL =
+ "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/";
+
+const studentsCollection = collection(db,"students");
+const attendanceCollection = collection(db,"attendance");
+
+let students = [];
+let attendance = [];
+let cameraStream = null;
+let faceModelsLoaded = false;
+let busy = false;
+
+/* TODAY */
+
+const today = new Date();
+const dateKey =
+ today.getFullYear()+"-"+
+ String(today.getMonth()+1).padStart(2,"0")+"-"+
+ String(today.getDate()).padStart(2,"0");
+
+document.getElementById("todayText").innerText =
+ "आज की दिनांक: "+today.toLocaleDateString("hi-IN");
+
+/* AUTH */
+
+async function initAuth(){
+ try{
+  await signInAnonymously(auth);
+  await loadData();
+ }catch(e){
+  console.error(e);
+  alert("Firebase लॉगिन नहीं हो सका: "+e.message);
+ }
+}
+
+async function loadModels(){
+ if(faceModelsLoaded)return;
+
+ if(!window.faceapi){
+  await loadScript(
+   "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"
+  );
+ }
+
+ await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+ await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+ await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+
+ faceModelsLoaded=true;
+}
+
+function loadScript(url){
+ return new Promise((resolve,reject)=>{
+  const s=document.createElement("script");
+  s.src=url;
+  s.onload=resolve;
+  s.onerror=reject;
+  document.head.appendChild(s);
+ });
+}
+
+/* DATA */
+
+async function loadData(){
+ const s=await getDocs(studentsCollection);
+ students=s.docs.map(d=>({id:d.id,...d.data()}));
+
+ const a=await getDocs(
+  query(attendanceCollection,where("date","==",dateKey))
+ );
+ attendance=a.docs.map(d=>({id:d.id,...d.data()}));
+
+ renderStudents();
+ renderAttendance();
+ updateStats();
+}
+
+/* TABS */
+
+window.showTab=function(id,button){
+ document.querySelectorAll(".container > section").forEach(s=>{
+  if(s.id==="addTab"||s.id==="faceTab"||s.id==="listTab"){
+   s.classList.add("hidden");
+  }
+ });
+ document.getElementById(id).classList.remove("hidden");
+
+ document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+ button.classList.add("active");
+}
+
+/* ADD STUDENT */
+
+document.getElementById("studentForm").addEventListener("submit",async e=>{
+ e.preventDefault();
+
+ const roll=document.getElementById("roll").value.trim();
+ const name=document.getElementById("name").value.trim();
+ const father=document.getElementById("father").value.trim();
+ const className=document.getElementById("className").value;
+
+ const msg=document.getElementById("registerMessage");
+ const btn=document.getElementById("saveStudentBtn");
+
+ if(!roll||!name||!father||!className)return;
+
+ const duplicate=students.some(s=>
+  s.roll===roll && s.className===className
+ );
+
+ if(duplicate){
+  msg.innerHTML='<div class="message error">इस कक्षा में यह क्रमांक पहले से मौजूद है।</div>';
+  return;
+ }
+
+ btn.disabled=true;
+ btn.innerText="सेव हो रहा है...";
+
+ try{
+  await addDoc(studentsCollection,{
+   roll,
+   name,
+   father,
+   className,
+   faceDescriptor:null,
+   createdAt:new Date().toISOString()
+  });
+
+  msg.innerHTML='<div class="message">विद्यार्थी सफलतापूर्वक सेव हो गया। अब विद्यार्थी सूची से चेहरे का पंजीकरण करें।</div>';
+  e.target.reset();
+  await loadData();
+
+ }catch(error){
+  msg.innerHTML='<div class="message error">सेव नहीं हुआ: '+error.message+'</div>';
+ }finally{
+  btn.disabled=false;
+  btn.innerText="विद्यार्थी सेव करें";
+ }
+});
+
+/* STUDENT LIST */
+
+window.renderStudents=function(){
+ const filter=document.getElementById("filterClass").value;
+ const search=document.getElementById("searchStudent").value.toLowerCase();
+ const box=document.getElementById("studentsList");
+
+ const filtered=students.filter(s=>{
+  const classOk=!filter||s.className===filter;
+  const searchOk=
+   (s.name||"").toLowerCase().includes(search)||
+   (s.roll||"").toString().includes(search)||
+   (s.father||"").toLowerCase().includes(search);
+  return classOk&&searchOk;
+ });
+
+ box.innerHTML="";
+
+ if(!filtered.length){
+  box.innerHTML="<p>कोई विद्यार्थी नहीं मिला।</p>";
+  return;
+ }
+
+ filtered.forEach(s=>{
+  const div=document.createElement("div");
+  div.className="student";
+
+  const info=document.createElement("div");
+  info.innerHTML=
+   "<b>"+escapeHTML(s.name)+"</b><br>"+
+   "<small>क्रमांक: "+escapeHTML(s.roll)+
+   " | कक्षा: "+escapeHTML(s.className)+
+   " | पिता: "+escapeHTML(s.father)+
+   "</small><br>"+
+   "<small>"+(s.faceDescriptor?"✅ चेहरा पंजीकृत":"⚠️ चेहरा पंजीकृत नहीं")+"</small>";
+
+  const actions=document.createElement("div");
+  actions.style.display="flex";
+  actions.style.flexDirection="column";
+  actions.style.gap="5px";
+
+  const faceBtn=document.createElement("button");
+  faceBtn.textContent=s.faceDescriptor?"फेस अपडेट":"फेस जोड़ें";
+  faceBtn.onclick=()=>registerFace(s.id);
+
+  const delBtn=document.createElement("button");
+  delBtn.className="danger";
+  delBtn.textContent="हटाएँ";
+  delBtn.onclick=()=>removeStudent(s.id,s.name);
+
+  actions.append(faceBtn,delBtn);
+  div.append(info,actions);
+  box.append(div);
+ });
+}
+
+/* FACE REGISTER */
+
+window.registerFace=async function(id){
+ const s=students.find(x=>x.id===id);
+ if(!s)return;
+
+ try{
+  await startCamera();
+  await loadModels();
+
+  alert("अब "+s.name+" को कैमरे के सामने रखें और OK दबाएँ।");
+
+  const video=document.getElementById("video");
+
+  const detection=await faceapi
+   .detectSingleFace(
+    video,
+    new faceapi.TinyFaceDetectorOptions()
+   )
+   .withFaceLandmarks()
+   .withFaceDescriptor();
+
+  if(!detection){
+   alert("चेहरा नहीं मिला। कैमरे के सामने सीधे देखें और दोबारा प्रयास करें।");
+   return;
+  }
+
+  const descriptor=Array.from(detection.descriptor);
+
+  await updateDoc(doc(db,"students",id),{
+   faceDescriptor:descriptor
+  });
+
+  alert("चेहरा सफलतापूर्वक पंजीकृत हो गया।");
+  await loadData();
+
+ }catch(e){
+  alert("फेस पंजीकरण त्रुटि: "+e.message);
+ }
+}
+
+/* CAMERA */
+
+window.startCamera=async function(){
+ try{
+  if(cameraStream)return;
+
+  cameraStream=await navigator.mediaDevices.getUserMedia({
+   video:{facingMode:"user"},
+   audio:false
+  });
+
+  const video=document.getElementById("video");
+  video.srcObject=cameraStream;
+
+  await video.play();
+  return true;
+
+ }catch(e){
+  alert("कैमरा नहीं खुला। वेबसाइट HTTPS पर खोलें और कैमरा अनुमति दें।");
+  return false;
+ }
+}
+
+window.stopCamera=function(){
+ if(cameraStream){
+  cameraStream.getTracks().forEach(t=>t.stop());
+  cameraStream=null;
+ }
+ document.getElementById("video").srcObject=null;
+}
+
+/* FACE ATTENDANCE */
+
+window.scanAttendance=async function(){
+ if(busy)return;
+ busy=true;
+
+ const btn=document.getElementById("scanBtn");
+ const msg=document.getElementById("faceMessage");
+
+ btn.disabled=true;
+ msg.innerHTML='<div class="message">चेहरा स्कैन हो रहा है...</div>';
+
+ try{
+  if(!cameraStream){
+   const ok=await startCamera();
+   if(!ok)return;
+  }
+
+  await loadModels();
+
+  const video=document.getElementById("video");
+
+  const result=await faceapi
+   .detectSingleFace(
+    video,
+    new faceapi.TinyFaceDetectorOptions()
+   )
+   .withFaceLandmarks()
+   .withFaceDescriptor();
+
+  if(!result){
+   msg.innerHTML='<div class="message error">चेहरा नहीं मिला। फिर प्रयास करें।</div>';
+   return;
+  }
+
+  let best=null;
+  let bestDistance=1;
+
+  students.forEach(s=>{
+   if(!s.faceDescriptor)return;
+
+   const distance=faceapi.euclideanDistance(
+    result.descriptor,
+    new Float32Array(s.faceDescriptor)
+   );
+
+   if(distance<bestDistance){
+    bestDistance=distance;
+    best=s;
+   }
+  });
+
+  /* MATCH THRESHOLD */
+  if(!best || bestDistance>0.48){
+   msg.innerHTML='<div class="message error">चेहरा पहचान नहीं हुआ। विद्यार्थी का चेहरा पहले पंजीकृत करें।</div>';
+   return;
+  }
+
+  const already=attendance.some(a=>a.studentId===best.id);
+
+  if(already){
+   msg.innerHTML='<div class="message">✅ '+escapeHTML(best.name)+' की आज उपस्थिति पहले ही लग चुकी है।</div>';
+   return;
+  }
+
+  const now=new Date();
+
+  await addDoc(attendanceCollection,{
+   studentId:best.id,
+   roll:best.roll,
+   name:best.name,
+   father:best.father,
+   className:best.className,
+   date:dateKey,
+   time:now.toLocaleTimeString("hi-IN"),
+   timestamp:now.toISOString(),
+   status:"Present"
+  });
+
+  msg.innerHTML=
+   '<div class="message">✅ उपस्थिति दर्ज हो गई!<br>'+
+   'नाम: '+escapeHTML(best.name)+'<br>'+
+   'कक्षा: '+escapeHTML(best.className)+'<br>'+
+   'क्रमांक: '+escapeHTML(best.roll)+'<br>'+
+   'पहचान दूरी: '+bestDistance.toFixed(3)+'</div>';
+
+  await loadData();
+
+ }catch(e){
+  console.error(e);
+  msg.innerHTML='<div class="message error">त्रुटि: '+escapeHTML(e.message)+'</div>';
+ }finally{
+  busy=false;
+  btn.disabled=false;
+ }
+}
+
+/* DELETE */
+
+window.removeStudent=async function(id,name){
+ if(!confirm(name+" को विद्यार्थी सूची से हटाना चाहते हैं?"))return;
+
+ try{
+  await deleteDoc(doc(db,"students",id));
+  await loadData();
+ }catch(e){
+  alert("हटाने में त्रुटि: "+e.message);
+ }
+}
+
+/* ATTENDANCE */
+
+function renderAttendance(){
+ const tbody=document.getElementById("attendanceTable");
+ tbody.innerHTML="";
+
+ attendance.sort((a,b)=>
+  Number(a.roll)-Number(b.roll)
+ );
+
+ attendance.forEach(a=>{
+  const tr=document.createElement("tr");
+  tr.innerHTML=
+   "<td>"+escapeHTML(a.roll)+"</td>"+
+   "<td>"+escapeHTML(a.name)+"</td>"+
+   "<td>"+escapeHTML(a.className)+"</td>"+
+   "<td>"+escapeHTML(a.time)+"</td>"+
+   "<td>✅ उपस्थित</td>";
+  tbody.appendChild(tr);
+ });
+}
+
+function updateStats(){
+ const present=attendance.length;
+ document.getElementById("totalStudents").innerText=students.length;
+ document.getElementById("presentCount").innerText=present;
+ document.getElementById("absentCount").innerText=Math.max(0,students.length-present);
+}
+
+/* HELPERS */
+
+function escapeHTML(value){
+ return String(value??"")
+ .replace(/[&<>"']/g,m=>({
+  "&":"&amp;",
+  "<":"&lt;",
+  ">":"&gt;",
+  '"':"&quot;",
+  "'":"&#39;"
+ }[m]));
+}
+
+/* START */
+
+initAuth();
+
+</script>
 </body>
 </html>
