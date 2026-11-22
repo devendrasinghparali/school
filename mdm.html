@@ -2,113 +2,601 @@
 <html lang="hi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MDM एंट्री व रिपोर्ट | शासकीय विद्यालय प्रबंधन प्रणाली</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#14213d" />
+  <title>GMS HARIPURA 1 TO 8 | मध्यान्ह भोजन (MDM)</title>
 
-  <link rel="stylesheet" href="style.css" />
-
-  <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700;800&display=swap" rel="stylesheet" />
 
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
   <script defer src="firebase-config.js"></script>
-  <script defer src="app.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    :root {
+      --ink: #14213d; --ink-soft: #3d4a63; --muted: #6b7690;
+      --teal: #0f766e; --teal-dark: #0b5a54; --saffron: #e8890c;
+      --green: #16794a; --red: #b42318;
+      --bg: #eef1f6; --card: #ffffff; --line: #dde3ee; --tint: #f5f7fb; --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: "Mukta", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--ink); min-height: 100vh; line-height: 1.5; font-size: 16px;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .hidden { display: none !important; }
+    :focus-visible { outline: 3px solid var(--saffron); outline-offset: 2px; }
+
+    /* Header */
+    .topbar { background: var(--ink); color: #fff; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 0; border-bottom: 4px solid var(--saffron); }
+    .topbar-inner { max-width: 1100px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; }
+    .brand-mark { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--saffron); color: var(--ink); display: grid; place-items: center; font-weight: 800; font-size: 1.05rem; }
+    .school-tag { display: block; font-size: 0.8rem; font-weight: 600; color: #b9c4dc; }
+    .topbar h1 { font-size: 1.3rem; font-weight: 700; line-height: 1.25; }
+    .header-actions { display: flex; gap: 8px; align-items: center; overflow-x: auto; padding: 2px 0 14px; scrollbar-width: none; }
+    .header-actions::-webkit-scrollbar { display: none; }
+    .header-actions .btn { flex: none; }
+
+    /* Layout */
+    .container { max-width: 1100px; margin: 16px auto 32px; padding: 0 14px; display: flex; flex-direction: column; gap: 16px; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 16px; border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(20, 33, 61, 0.04); }
+    .card h2 { font-size: 1.15rem; margin-bottom: 4px; }
+    .hint { font-size: 0.92rem; color: var(--muted); }
+    .entry-grid { display: grid; grid-template-columns: 1fr; gap: 0 16px; margin-top: 14px; }
+    @media (min-width: 821px) { .entry-grid { grid-template-columns: 1fr 1fr; } .span-2 { grid-column: 1 / -1; } }
+
+    /* Forms */
+    .form-group { margin-bottom: 14px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    label { display: block; font-weight: 600; font-size: 0.92rem; margin-bottom: 5px; color: var(--ink-soft); }
+    input, select, textarea {
+      width: 100%; min-height: 46px; padding: 10px 12px; border: 1.5px solid #c8d1e2; border-radius: 10px;
+      font: inherit; font-size: 1rem; background: #fff; color: var(--ink);
+    }
+    textarea { min-height: 96px; resize: vertical; line-height: 1.5; }
+    input:focus, select:focus, textarea:focus { border-color: var(--teal); outline: 3px solid rgba(15, 118, 110, 0.2); outline-offset: 0; }
+    input[readonly] { background: var(--tint); font-weight: 700; color: var(--ink); }
+    input:disabled, textarea:disabled { background: var(--tint); color: var(--muted); }
+    .inline { display: flex; gap: 8px; }
+    .inline input { flex: 1; min-width: 0; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .chip { border: 1.5px solid #c8d1e2; background: #fff; color: var(--ink-soft); border-radius: 999px; padding: 5px 13px; font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; min-height: 36px; }
+    .chip:active { background: var(--tint); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center; text-decoration: none;
+      border: none; border-radius: 10px; padding: 11px 16px; min-height: 46px; font: inherit; font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: background 0.15s, transform 0.1s; white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-sm { min-height: 40px; padding: 7px 14px; font-size: 0.92rem; border-radius: 999px; }
+    .full-width { width: 100%; }
+    .btn-primary { background: var(--teal); color: #fff; }
+    .btn-primary:hover { background: var(--teal-dark); }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-light { background: #e9edf5; color: var(--ink); }
+    .btn-danger-soft { background: #fde4e1; color: #9a1c12; }
+    .header-actions .btn-light { background: rgba(255, 255, 255, 0.14); color: #fff; }
+    .header-actions .btn-logout { background: transparent; color: #ffb4ad; border: 1.5px solid rgba(255, 180, 173, 0.5); }
+
+    .msg { margin-top: 12px; font-size: 0.95rem; font-weight: 600; color: var(--ink-soft); background: var(--tint); border-radius: 10px; padding: 9px 12px; }
+    .msg:empty { display: none; }
+    .msg.ok { background: #dcf5e7; color: #0f5f38; }
+    .msg.err { background: #fde4e1; color: #9a1c12; }
+    .note { font-size: 0.88rem; color: var(--saffron); font-weight: 700; margin-top: 6px; }
+    .note:empty { display: none; }
+
+    /* Month section */
+    .month-bar { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 14px 0; }
+    @media (min-width: 821px) { .month-bar { grid-template-columns: 220px 1fr; align-items: end; } }
+    .sig-opts { display: flex; flex-direction: column; gap: 8px; background: var(--tint); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+    .check { display: flex; align-items: center; gap: 10px; font-weight: 600; margin: 0; color: var(--ink); }
+    .check input { width: 22px; height: 22px; min-height: 0; flex: none; accent-color: var(--teal); }
+
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .stat { background: var(--tint); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+    .stat-label { font-size: 0.82rem; color: var(--muted); font-weight: 600; line-height: 1.3; }
+    .stat-value { font-size: 1.5rem; font-weight: 800; line-height: 1.25; }
+
+    .action-row { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 14px; }
+    @media (min-width: 560px) { .action-row { grid-template-columns: 1fr 1fr; } }
+
+    .table-responsive { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; background: #fff; }
+    .data-table th, .data-table td { padding: 11px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+    .data-table th { background: var(--ink); color: #fff; font-weight: 700; font-size: 0.88rem; white-space: nowrap; }
+    .data-table tbody tr:nth-child(even) { background: var(--tint); }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .cell-actions { white-space: nowrap; }
+    .cell-actions .btn { margin-right: 6px; }
+    .empty-cell { text-align: center !important; color: var(--muted); padding: 28px 12px !important; }
+    .badge-closed { display: inline-block; background: #fdebd0; color: #8a4b00; padding: 2px 10px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; }
+
+    @media (max-width: 700px) {
+      .table-responsive { border: none; overflow: visible; }
+      .data-table, .data-table tbody { display: block; background: transparent; }
+      .data-table thead { display: none; }
+      .data-table tbody tr { display: block; background: #fff !important; border: 1px solid var(--line); border-radius: 12px; padding: 4px 14px; margin-bottom: 10px; }
+      .data-table td { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; padding: 8px 0; border-bottom: 1px dashed var(--line); text-align: right; }
+      .data-table td:last-child { border-bottom: none; justify-content: flex-end; }
+      .data-table td::before { content: attr(data-label); color: var(--muted); font-size: 0.85rem; font-weight: 600; text-align: left; flex: none; }
+      .data-table td.cell-actions::before { content: none; }
+      .data-table tr.empty-row td { display: block; text-align: center; }
+      .data-table tr.empty-row td::before { content: none; }
+    }
+
+    /* ---------- A4 report (PDF + print) ---------- */
+    #print-root { position: absolute; left: -10000px; top: 0; width: 794px; background: #fff; color: #000; }
+    .a4 {
+      width: 794px; min-height: 1123px; padding: 44px 46px 48px; display: flex; flex-direction: column;
+      font-family: "Mukta", "Noto Sans Devanagari", sans-serif; font-size: 13px; line-height: 1.45; background: #fff; color: #000;
+    }
+    .a4-head { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 14px; }
+    .a4-school { font-size: 22px; font-weight: 800; letter-spacing: 0.02em; }
+    .a4-title { font-size: 16px; font-weight: 700; margin-top: 2px; }
+    .a4-month { font-size: 14px; font-weight: 600; margin-top: 2px; }
+    .a4 table { width: 100%; border-collapse: collapse; }
+    .a4 th, .a4 td { border: 1px solid #222; padding: 5px 7px; text-align: left; vertical-align: top; font-size: 12.5px; }
+    .a4 th { background: #e8ecf3; font-weight: 700; }
+    .a4 td.c, .a4 th.c { text-align: center; }
+    .a4-sum { margin-top: 12px; display: flex; gap: 22px; flex-wrap: wrap; font-weight: 700; font-size: 13px; }
+    .a4-spacer { flex: 1; min-height: 40px; }
+    .a4-sign { display: flex; justify-content: flex-end; }
+    .a4-sign div { width: 230px; text-align: center; }
+    .a4-sign .line { border-top: 1.5px solid #000; padding-top: 5px; font-weight: 700; margin-top: 56px; }
+    .a4-sign .nm { font-size: 12.5px; margin-top: 2px; }
+
+    @page { size: A4; margin: 0; }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .topbar, .container { display: none !important; }
+      #print-root { position: static !important; left: auto !important; width: 210mm !important; }
+      .a4 { width: 210mm; min-height: 296mm; padding: 14mm 14mm 16mm; }
+      .a4 tr { break-inside: avoid; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
 </head>
-<body data-page="mdm">
+<body>
   <header class="topbar">
-    <div>
-      <h1>मध्याह्न भोजन (MDM) प्रबंधन</h1>
-      <p class="subtitle">दैनिक भोजन एंट्री व मासिक रिपोर्ट</p>
-    </div>
-    <div class="header-actions">
-      <a href="home.html" class="btn btn-secondary btn-sm">होम</a>
-      <a href="attendance.html" class="btn btn-primary btn-sm">उपस्थिति</a>
-      <button id="logout-btn" class="btn btn-danger btn-sm">लॉगआउट</button>
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">MDM</div>
+        <div>
+          <span class="school-tag">GMS HARIPURA 1 TO 8</span>
+          <h1>मध्यान्ह भोजन (MDM) रजिस्टर</h1>
+        </div>
+      </div>
+      <nav class="header-actions" aria-label="मुख्य मेनू">
+        <a href="home.html" class="btn btn-light btn-sm">होम</a>
+        <a href="attendance.html" class="btn btn-light btn-sm">उपस्थिति</a>
+        <button type="button" id="logout-btn" class="btn btn-logout btn-sm">लॉगआउट</button>
+      </nav>
     </div>
   </header>
 
   <main class="container">
-    <section class="grid-2">
-      <!-- दैनिक MDM एंट्री -->
-      <div class="card">
-        <h3>दैनिक MDM एंट्री</h3>
-        <form id="mdm-form">
+    <!-- एंट्री -->
+    <section class="card">
+      <h2>आज की MDM एंट्री</h2>
+      <p class="hint">तारीख चुनें, भोजन करने वाले बच्चों की संख्या और मेनू भरकर सेव करें।</p>
+
+      <form id="mdm-form" novalidate>
+        <div class="entry-grid">
           <div class="form-row">
             <div class="form-group">
-              <label for="mdm-date">दिनांक</label>
-              <input type="date" id="mdm-date" required />
+              <label for="f-date">तारीख</label>
+              <input type="date" id="f-date" required />
             </div>
             <div class="form-group">
-              <label for="mdm-day">वार (दिन)</label>
-              <input type="text" id="mdm-day" readonly />
+              <label for="f-day">वार</label>
+              <input type="text" id="f-day" readonly tabindex="-1" />
             </div>
           </div>
 
           <div class="form-group">
-            <label for="mdm-menu">मेनू</label>
-            <input type="text" id="mdm-menu" required placeholder="जैसे: दाल-चावल, रोटी-सब्जी, हलवा" />
+            <label for="f-status">MDM की स्थिति</label>
+            <select id="f-status">
+              <option value="open">भोजन बना</option>
+              <option value="closed">MDM बंद (अवकाश / अन्य कारण)</option>
+            </select>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="mdm-count-1-5">खाना खाने वाले बच्चे (कक्षा 1–5)</label>
-              <input type="number" id="mdm-count-1-5" min="0" value="0" required />
-            </div>
-            <div class="form-group">
-              <label for="mdm-count-6-8">खाना खाने वाले बच्चे (कक्षा 6–8)</label>
-              <input type="number" id="mdm-count-6-8" min="0" value="0" required />
+          <div class="form-group">
+            <label for="f-children">भोजन करने वाले बच्चे</label>
+            <div class="inline">
+              <input type="number" id="f-children" min="0" inputmode="numeric" placeholder="जैसे: 85" />
+              <button type="button" id="fill-att-btn" class="btn btn-light">उपस्थिति से भरें</button>
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary full-width">MDM एंट्री सेव करें</button>
-        </form>
-        <p id="mdm-msg" class="feedback-text"></p>
-      </div>
-
-      <!-- मासिक रिपोर्ट डाउनलोड -->
-      <div class="card">
-        <h3>मासिक MDM रिपोर्ट डाउनलोड</h3>
-        <p class="hint">चयनित माह की रिपोर्ट में दिनांक, वार, मेनू, लाभार्थी संख्या और नीचे <strong>MDM प्रभारी के हस्ताक्षर</strong> का कॉलम शामिल होगा।</p>
-
-        <div class="form-group">
-          <label for="report-month">माह चुनें</label>
-          <input type="month" id="report-month" required />
+          <div class="form-group span-2">
+            <label for="f-menu">आज का मेनू</label>
+            <textarea id="f-menu" placeholder="जैसे: दाल, चावल, हरी सब्जी"></textarea>
+            <div class="chips" id="menu-chips">
+              <button type="button" class="chip">दाल-चावल</button>
+              <button type="button" class="chip">खिचड़ी</button>
+              <button type="button" class="chip">पूड़ी-सब्जी</button>
+              <button type="button" class="chip">कढ़ी-चावल</button>
+              <button type="button" class="chip">चना-चावल</button>
+              <button type="button" class="chip">खीर</button>
+            </div>
+            <p id="exists-note" class="note"></p>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label for="school-name-input">विद्यालय का नाम</label>
-          <input type="text" id="school-name-input" value="शासकीय विद्यालय (कक्षा 1 से 8)" />
-        </div>
-
-        <button id="download-mdm-pdf-btn" class="btn btn-success full-width">मासिक रिपोर्ट PDF डाउनलोड करें</button>
-        <p id="report-msg" class="feedback-text"></p>
-      </div>
+        <button type="submit" id="save-btn" class="btn btn-primary full-width">एंट्री सेव करें</button>
+        <p id="form-msg" class="msg" role="status"></p>
+      </form>
     </section>
 
-    <!-- चयनित माह की झलक -->
+    <!-- महीने की रिपोर्ट -->
     <section class="card">
-      <h3>चयनित माह के रिकॉर्ड</h3>
+      <h2>मासिक रिपोर्ट</h2>
+      <p class="hint">महीना चुनें, एंट्री देखें और A4 PDF डाउनलोड या प्रिंट करें।</p>
+
+      <div class="month-bar">
+        <div>
+          <label for="month-input">महीना</label>
+          <input type="month" id="month-input" />
+        </div>
+        <div class="sig-opts">
+          <label class="check"><input type="checkbox" id="sig-toggle" checked /> नीचे MDM प्रभारी के हस्ताक्षर की जगह जोड़ें</label>
+          <input type="text" id="incharge-name" placeholder="MDM प्रभारी का नाम (वैकल्पिक)" aria-label="MDM प्रभारी का नाम" />
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="stat-label">भोजन बनने के दिन</div><div class="stat-value" id="st-days">0</div></div>
+        <div class="stat"><div class="stat-label">कुल भोजन (बच्चे)</div><div class="stat-value" id="st-total">0</div></div>
+        <div class="stat"><div class="stat-label">औसत प्रतिदिन</div><div class="stat-value" id="st-avg">0</div></div>
+      </div>
+
+      <div class="action-row">
+        <button type="button" id="pdf-btn" class="btn btn-success">PDF डाउनलोड (A4)</button>
+        <button type="button" id="print-btn" class="btn btn-light">प्रिंट करें</button>
+      </div>
+      <p id="month-msg" class="msg" role="status" style="margin: 0 0 14px;"></p>
+
       <div class="table-responsive">
         <table class="data-table">
           <thead>
             <tr>
               <th>दिनांक</th>
               <th>वार</th>
+              <th>भोजन करने वाले बच्चे</th>
               <th>मेनू</th>
-              <th>कक्षा 1–5</th>
-              <th>कक्षा 6–8</th>
-              <th>कुल</th>
+              <th></th>
             </tr>
           </thead>
-          <tbody id="mdm-month-tbody">
-            <tr><td colspan="6" class="hint">डेटा लोड हो रहा है...</td></tr>
+          <tbody id="month-tbody">
+            <tr class="empty-row"><td colspan="5" class="empty-cell">डेटा लोड हो रहा है...</td></tr>
           </tbody>
         </table>
       </div>
     </section>
   </main>
+
+  <!-- A4 रिपोर्ट (PDF / प्रिंट के लिए) -->
+  <div id="print-root" aria-hidden="true"></div>
+
+  <script>
+    const DAYS = ["रविवार", "सोमवार", "मंगलवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
+    const MONTHS = ["जनवरी", "फ़रवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त", "सितंबर", "अक्टूबर", "नवंबर", "दिसंबर"];
+    const SCHOOL = "GMS HARIPURA 1 TO 8";
+    const $ = (id) => document.getElementById(id);
+
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const todayISO = () => {
+      const n = new Date();
+      return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+    };
+    const dayName = (iso) => {
+      const [y, m, d] = iso.split("-").map(Number);
+      return DAYS[new Date(y, m - 1, d).getDay()];
+    };
+    const fmtDate = (iso) => iso.split("-").reverse().join("-");
+    const monthTitle = (ym) => {
+      const [y, m] = ym.split("-").map(Number);
+      return `${MONTHS[m - 1]} ${y}`;
+    };
+
+    function say(el, text, type) {
+      el.textContent = text || "";
+      el.className = "msg" + (type ? " " + type : "");
+    }
+    function errText(err) {
+      if (err && err.code === "permission-denied") {
+        return "Firebase में 'mdm' कलेक्शन की अनुमति (Rules) नहीं है। Firestore Rules में mdm जोड़ें।";
+      }
+      return "कुछ गड़बड़ हुई, इंटरनेट जाँचकर दोबारा कोशिश करें।";
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      $("logout-btn").addEventListener("click", async () => {
+        await auth.signOut();
+        window.location.href = "index.html";
+      });
+      auth.onAuthStateChanged((user) => {
+        if (!user) { window.location.href = "index.html"; return; }
+        startMdm();
+      });
+    });
+
+    function startMdm() {
+      let entries = [];
+
+      const fDate = $("f-date"), fDay = $("f-day"), fStatus = $("f-status");
+      const fChildren = $("f-children"), fMenu = $("f-menu");
+      const monthInput = $("month-input");
+
+      fDate.value = todayISO();
+      fDay.value = dayName(fDate.value);
+      monthInput.value = todayISO().slice(0, 7);
+      try { $("incharge-name").value = localStorage.getItem("mdm-incharge") || ""; } catch (e) {}
+
+      function applyStatusUI() {
+        const closed = fStatus.value === "closed";
+        fChildren.disabled = closed;
+        fMenu.disabled = closed;
+        $("fill-att-btn").disabled = closed;
+      }
+
+      async function loadEntryForDate() {
+        const date = fDate.value;
+        fDay.value = date ? dayName(date) : "";
+        $("exists-note").textContent = "";
+        if (!date) return;
+        try {
+          const snap = await db.collection("mdm").doc(date).get();
+          if (fDate.value !== date) return;
+          if (snap.exists) {
+            const d = snap.data();
+            fStatus.value = d.closed ? "closed" : "open";
+            fChildren.value = d.closed ? "" : (d.children ?? "");
+            fMenu.value = d.menu || "";
+            $("exists-note").textContent = "इस तारीख की एंट्री पहले से दर्ज है, सेव करने पर अपडेट होगी।";
+          } else {
+            fStatus.value = "open";
+            fChildren.value = "";
+            fMenu.value = "";
+          }
+          applyStatusUI();
+        } catch (err) {
+          say($("form-msg"), errText(err), "err");
+        }
+      }
+
+      async function loadMonth() {
+        const ym = monthInput.value;
+        const tbody = $("month-tbody");
+        if (!ym) return;
+        tbody.innerHTML = `<tr class="empty-row"><td colspan="5" class="empty-cell">डेटा लोड हो रहा है...</td></tr>`;
+        try {
+          const snap = await db.collection("mdm")
+            .where("date", ">=", ym + "-01")
+            .where("date", "<=", ym + "-31")
+            .get();
+          entries = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.date.localeCompare(b.date));
+          renderMonth();
+        } catch (err) {
+          entries = [];
+          tbody.innerHTML = `<tr class="empty-row"><td colspan="5" class="empty-cell">${esc(errText(err))}</td></tr>`;
+          renderStats();
+        }
+      }
+
+      function renderStats() {
+        const open = entries.filter((e) => !e.closed);
+        const total = open.reduce((s, e) => s + (Number(e.children) || 0), 0);
+        $("st-days").textContent = open.length;
+        $("st-total").textContent = total;
+        $("st-avg").textContent = open.length ? Math.round(total / open.length) : 0;
+      }
+
+      function renderMonth() {
+        renderStats();
+        const tbody = $("month-tbody");
+        if (!entries.length) {
+          tbody.innerHTML = `<tr class="empty-row"><td colspan="5" class="empty-cell">इस महीने की कोई एंट्री नहीं है।</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = entries.map((e) => `
+          <tr>
+            <td data-label="दिनांक">${esc(fmtDate(e.date))}</td>
+            <td data-label="वार">${esc(e.day || dayName(e.date))}</td>
+            <td data-label="बच्चे">${e.closed ? '<span class="badge-closed">MDM बंद</span>' : esc(e.children)}</td>
+            <td data-label="मेनू">${e.closed ? "-" : esc(e.menu)}</td>
+            <td class="cell-actions">
+              <button type="button" class="btn btn-light btn-sm" data-act="edit" data-date="${esc(e.date)}">बदलें</button>
+              <button type="button" class="btn btn-danger-soft btn-sm" data-act="del" data-date="${esc(e.date)}">हटाएँ</button>
+            </td>
+          </tr>`).join("");
+      }
+
+      // ---- events ----
+      fDate.addEventListener("change", loadEntryForDate);
+      fStatus.addEventListener("change", applyStatusUI);
+      monthInput.addEventListener("change", loadMonth);
+
+      $("menu-chips").addEventListener("click", (e) => {
+        const chip = e.target.closest(".chip");
+        if (!chip || fMenu.disabled) return;
+        const cur = fMenu.value.trim();
+        fMenu.value = cur ? cur.replace(/[,\s]+$/, "") + ", " + chip.textContent : chip.textContent;
+      });
+
+      $("fill-att-btn").addEventListener("click", async () => {
+        const date = fDate.value;
+        if (!date) return;
+        try {
+          const snap = await db.collection("attendance").doc(date).get();
+          if (!snap.exists) { say($("form-msg"), "इस तारीख की उपस्थिति दर्ज नहीं है।", "err"); return; }
+          fChildren.value = (snap.data().students || []).length;
+          say($("form-msg"), "उपस्थित बच्चों की संख्या भर दी गई है, चाहें तो बदल सकते हैं।", "ok");
+        } catch (err) {
+          say($("form-msg"), errText(err), "err");
+        }
+      });
+
+      $("mdm-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const date = fDate.value;
+        if (!date) { say($("form-msg"), "तारीख चुनें।", "err"); return; }
+        const closed = fStatus.value === "closed";
+        const children = closed ? 0 : parseInt(fChildren.value, 10);
+        const menu = closed ? "" : fMenu.value.trim();
+        if (!closed && (isNaN(children) || children < 0)) { say($("form-msg"), "भोजन करने वाले बच्चों की संख्या लिखें।", "err"); return; }
+        if (!closed && !menu) { say($("form-msg"), "आज का मेनू लिखें।", "err"); return; }
+
+        const btn = $("save-btn");
+        btn.disabled = true;
+        try {
+          await db.collection("mdm").doc(date).set({
+            date, day: dayName(date), closed, children, menu,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          say($("form-msg"), `${fmtDate(date)} (${dayName(date)}) की एंट्री सेव हो गई।`, "ok");
+          $("exists-note").textContent = "इस तारीख की एंट्री पहले से दर्ज है, सेव करने पर अपडेट होगी।";
+          monthInput.value = date.slice(0, 7);
+          loadMonth();
+        } catch (err) {
+          say($("form-msg"), errText(err), "err");
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      $("month-tbody").addEventListener("click", async (e) => {
+        const btn = e.target.closest("button[data-act]");
+        if (!btn) return;
+        const date = btn.dataset.date;
+        if (btn.dataset.act === "edit") {
+          fDate.value = date;
+          await loadEntryForDate();
+          $("mdm-form").scrollIntoView({ behavior: "smooth", block: "start" });
+        } else if (confirm(`${fmtDate(date)} की एंट्री हटानी है?`)) {
+          try {
+            await db.collection("mdm").doc(date).delete();
+            say($("month-msg"), "एंट्री हटा दी गई।", "ok");
+            if (fDate.value === date) loadEntryForDate();
+            loadMonth();
+          } catch (err) {
+            say($("month-msg"), errText(err), "err");
+          }
+        }
+      });
+
+      $("incharge-name").addEventListener("input", (e) => {
+        try { localStorage.setItem("mdm-incharge", e.target.value); } catch (err) {}
+      });
+
+      // ---- A4 report ----
+      function buildReport() {
+        const ym = monthInput.value;
+        if (!entries.length) {
+          say($("month-msg"), "इस महीने की कोई एंट्री नहीं है, पहले एंट्री जोड़ें।", "err");
+          return false;
+        }
+        say($("month-msg"), "");
+        const open = entries.filter((e) => !e.closed);
+        const total = open.reduce((s, e) => s + (Number(e.children) || 0), 0);
+        const avg = open.length ? Math.round(total / open.length) : 0;
+        const rows = entries.map((e, i) => `
+          <tr>
+            <td class="c">${i + 1}</td>
+            <td>${esc(fmtDate(e.date))}</td>
+            <td>${esc(e.day || dayName(e.date))}</td>
+            <td class="c">${e.closed ? "-" : esc(e.children)}</td>
+            <td>${e.closed ? "MDM बंद" : esc(e.menu)}</td>
+          </tr>`).join("");
+        const sig = $("sig-toggle").checked ? `
+          <div class="a4-sign"><div>
+            <div class="line">MDM प्रभारी के हस्ताक्षर</div>
+            ${$("incharge-name").value.trim() ? `<div class="nm">(${esc($("incharge-name").value.trim())})</div>` : ""}
+          </div></div>` : "";
+
+        $("print-root").innerHTML = `
+          <div class="a4">
+            <div class="a4-head">
+              <div class="a4-school">${SCHOOL}</div>
+              <div class="a4-title">मध्यान्ह भोजन (MDM) मासिक रिपोर्ट</div>
+              <div class="a4-month">माह: ${esc(monthTitle(ym))}</div>
+            </div>
+            <table>
+              <thead><tr>
+                <th class="c" style="width:42px">क्र.</th>
+                <th style="width:92px">दिनांक</th>
+                <th style="width:92px">वार</th>
+                <th class="c" style="width:110px">भोजन करने वाले बच्चे</th>
+                <th>मेनू</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+            <div class="a4-sum">
+              <span>भोजन बनने के दिन: ${open.length}</span>
+              <span>कुल भोजन (बच्चे): ${total}</span>
+              <span>औसत प्रतिदिन: ${avg}</span>
+            </div>
+            <div class="a4-spacer"></div>
+            ${sig}
+          </div>`;
+        return true;
+      }
+
+      $("print-btn").addEventListener("click", () => {
+        if (buildReport()) window.print();
+      });
+
+      $("pdf-btn").addEventListener("click", async () => {
+        if (!buildReport()) return;
+        if (!window.html2canvas || !window.jspdf) {
+          say($("month-msg"), "PDF टूल लोड नहीं हुआ। इंटरनेट जाँचकर पेज रीफ्रेश करें, या 'प्रिंट करें' से PDF सेव करें।", "err");
+          return;
+        }
+        const btn = $("pdf-btn");
+        const label = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "PDF बन रही है...";
+        try {
+          if (document.fonts && document.fonts.ready) await document.fonts.ready;
+          const canvas = await html2canvas($("print-root"), {
+            scale: 2, backgroundColor: "#ffffff", useCORS: true, width: 794, windowWidth: 794,
+            onclone: (doc) => {
+              const el = doc.getElementById("print-root");
+              el.style.position = "static";
+              el.style.left = "0";
+            }
+          });
+          const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+          let w = 210, h = (canvas.height * 210) / canvas.width;
+          if (h > 297) { w = (w * 297) / h; h = 297; }
+          pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", (210 - w) / 2, 0, w, h);
+          pdf.save(`MDM-Report-GMS-Haripura-${monthInput.value}.pdf`);
+          say($("month-msg"), "PDF डाउनलोड हो गई।", "ok");
+        } catch (err) {
+          console.error(err);
+          say($("month-msg"), "PDF नहीं बन सकी। 'प्रिंट करें' दबाकर 'PDF के रूप में सेव करें' चुनें।", "err");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = label;
+        }
+      });
+
+      applyStatusUI();
+      loadEntryForDate();
+      loadMonth();
+    }
+  </script>
 </body>
 </html>
