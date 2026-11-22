@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>फेस उपस्थिति | शासकीय विद्यालय प्रबंधन प्रणाली</title>
+
+  <link rel="stylesheet" href="style.css" />
+
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script defer src="firebase-config.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body data-page="attendance">
+  <header class="topbar">
+    <div>
+      <h1>Face Authentication उपस्थिति</h1>
+      <p id="model-status" class="status-badge">फेस मॉडल लोड हो रहे हैं...</p>
+    </div>
+    <div class="header-actions">
+      <a href="home.html" class="btn btn-secondary btn-sm">होम</a>
+      <a href="mdm.html" class="btn btn-success btn-sm">MDM</a>
+      <button id="logout-btn" class="btn btn-danger btn-sm">लॉगआउट</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- कैमरा पैनल -->
+    <section class="card camera-card">
+      <div class="camera-header">
+        <strong id="camera-mode-label">कैमरा बंद है</strong>
+        <button id="stop-camera-btn" class="btn btn-secondary btn-sm hidden">कैमरा बंद करें</button>
+      </div>
+      <div class="video-wrapper">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="overlay"></canvas>
+      </div>
+      <p id="camera-feedback" class="feedback-text">उपस्थिति या रजिस्ट्रेशन के लिए नीचे दिया बटन दबाएं।</p>
+    </section>
+
+    <!-- दैनिक उपस्थिति (बच्चे और 4 रसोइए) -->
+    <section class="grid-2">
+      <div class="card">
+        <h3>बच्चों की उपस्थिति (कक्षा 1–8)</h3>
+        <p class="hint">लगभग 130 बच्चे | आज उपस्थित: <strong id="present-students-count">0</strong></p>
+        <button id="start-student-att-btn" class="btn btn-primary">बच्चों की उपस्थिति कैमरा शुरू करें</button>
+        <div class="list-box">
+          <h4>आज उपस्थित बच्चे:</h4>
+          <ul id="present-students-list" class="chip-list"></ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>रसोइयों की उपस्थिति (4 रसोइए)</h3>
+        <p class="hint">कुल 4 रसोइए | आज उपस्थित: <strong id="present-cooks-count">0</strong></p>
+        <button id="start-cook-att-btn" class="btn btn-primary">रसोइयों की उपस्थिति कैमरा शुरू करें</button>
+        <div class="list-box">
+          <h4>आज उपस्थित रसोइए:</h4>
+          <ul id="present-cooks-list" class="chip-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- फेस रजिस्ट्रेशन (बच्चे और रसोइया) -->
+    <section class="grid-2">
+      <div class="card">
+        <h3>नया बच्चा रजिस्टर करें</h3>
+        <form id="register-student-form">
+          <div class="form-group">
+            <label for="student-name">बच्चे का नाम</label>
+            <input type="text" id="student-name" required placeholder="बच्चे का पूरा नाम" />
+          </div>
+          <div class="form-group">
+            <label for="student-class">कक्षा (1 से 8)</label>
+            <select id="student-class" required>
+              <option value="">कक्षा चुनें</option>
+              <option value="1">कक्षा 1</option>
+              <option value="2">कक्षा 2</option>
+              <option value="3">कक्षा 3</option>
+              <option value="4">कक्षा 4</option>
+              <option value="5">कक्षा 5</option>
+              <option value="6">कक्षा 6</option>
+              <option value="7">कक्षा 7</option>
+              <option value="8">कक्षा 8</option>
+            </select>
+          </div>
+          <div class="btn-row">
+            <button type="button" id="open-student-reg-cam-btn" class="btn btn-secondary">कैमरा खोलें</button>
+            <button type="submit" class="btn btn-success">चेहरा स्कैन कर सेव करें</button>
+          </div>
+        </form>
+        <p id="student-reg-msg" class="feedback-text"></p>
+        <div class="list-box">
+          <h4>पंजीकृत बच्चे: <strong id="registered-students-count">0</strong></h4>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>रसोइया रजिस्टर करें (अधिकतम 4)</h3>
+        <form id="register-cook-form">
+          <div class="form-group">
+            <label for="cook-name">रसोइए का नाम</label>
+            <input type="text" id="cook-name" required placeholder="रसोइए का नाम" />
+          </div>
+          <div class="btn-row">
+            <button type="button" id="open-cook-reg-cam-btn" class="btn btn-secondary">कैमरा खोलें</button>
+            <button type="submit" class="btn btn-success">चेहरा स्कैन कर सेव करें</button>
+          </div>
+        </form>
+        <p id="cook-reg-msg" class="feedback-text"></p>
+        <div class="list-box">
+          <h4>पंजीकृत रसोइए (<span id="registered-cooks-count">0</span>/4):</h4>
+          <ul id="registered-cooks-list" class="simple-list"></ul>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
