@@ -212,6 +212,8 @@
     .btn-success { background: var(--green); color: #fff; }
     .btn-secondary { background: #e9edf5; color: var(--ink); }
     .btn-danger { background: var(--red); color: #fff; }
+    .dup-banner { display: flex; flex-direction: column; gap: 10px; background: #fdf0dc; border: 1px solid #f3d9a8; color: #8a4b00; border-radius: 12px; padding: 12px 14px; font-weight: 600; font-size: 0.95rem; }
+    @media (min-width: 600px) { .dup-banner { flex-direction: row; align-items: center; justify-content: space-between; } }
     .header-actions .btn-success { background: var(--saffron); color: var(--ink); }
     .header-actions .btn-secondary { background: rgba(255, 255, 255, 0.14); color: #fff; }
     .header-actions .btn-danger { background: transparent; color: #ffb4ad; border: 1.5px solid rgba(255, 180, 173, 0.5); }
@@ -298,6 +300,11 @@
         <p id="reg-status-msg" class="feedback-text"></p>
       </div>
     </section>
+
+    <div id="dup-banner" class="dup-banner hidden" role="alert">
+      <span id="dup-text"></span>
+      <button type="button" id="dup-fix-btn" class="btn btn-danger btn-sm">डुप्लीकेट हटाएँ</button>
+    </div>
 
     <section class="card">
       <div class="report-toolbar">
@@ -476,6 +483,8 @@
       let cooksCache = [];
       let presentStudentIds = new Set();
       let presentCookIds = new Set();
+      let loadedDate = null;
+      let saving = false;
 
       const today = getTodayISO();
       excelDateInput.value = today;
@@ -508,6 +517,7 @@
       ensureModels().then((ok) => { if (!ok) cameraFeedback.textContent = MODEL_ERR; });
 
       async function loadDataForDate(targetDate) {
+        loadedDate = targetDate;
         const [stuSnap, cookSnap, attDoc] = await Promise.all([
           db.collection("students").get(),
           db.collection("cooks").get(),
@@ -531,6 +541,7 @@
         presentCookIds = new Set(attData.cooks || []);
 
         renderTable(targetDate);
+        showDup();
       }
 
       function getCombinedRows(targetDate) {
@@ -562,16 +573,18 @@
       }
 
       function renderTable(targetDate) {
+        const pS = studentsCache.filter((x) => presentStudentIds.has(x.id)).length;
+        const pC = cooksCache.filter((x) => presentCookIds.has(x.id)).length;
         document.getElementById("total-students-count").textContent = String(studentsCache.length);
-        document.getElementById("present-students-count").textContent = String(presentStudentIds.size);
+        document.getElementById("present-students-count").textContent = String(pS);
         document.getElementById("total-cooks-count").textContent = String(cooksCache.length);
-        document.getElementById("present-cooks-count").textContent = String(presentCookIds.size);
+        document.getElementById("present-cooks-count").textContent = String(pC);
         const setBar = (id, p, t) => {
           const el = document.getElementById(id);
           if (el) el.style.width = t ? Math.min(100, Math.round((p / t) * 100)) + "%" : "0%";
         };
-        setBar("students-bar", presentStudentIds.size, studentsCache.length);
-        setBar("cooks-bar", presentCookIds.size, cooksCache.length);
+        setBar("students-bar", pS, studentsCache.length);
+        setBar("cooks-bar", pC, cooksCache.length);
 
         const rows = getCombinedRows(targetDate).filter((r) =>
           filterSelect.value === "all" ? true : r.status === filterSelect.value
@@ -643,42 +656,56 @@
           0.55
         );
 
+        let busy = false;
         scanInterval = setInterval(async () => {
+          if (busy) return;
           if (!attVideo.videoWidth || !attVideo.videoHeight) return;
-          attOverlay.width = attVideo.videoWidth;
-          attOverlay.height = attVideo.videoHeight;
+          busy = true;
+          try {
+            attOverlay.width = attVideo.videoWidth;
+            attOverlay.height = attVideo.videoHeight;
 
-          const detections = await faceapi
-            .detectAllFaces(attVideo, new faceapi.TinyFaceDetectorOptions())
-            .withFaceLandmarks()
-            .withFaceDescriptors();
+            const detections = await faceapi
+              .detectAllFaces(attVideo, new faceapi.TinyFaceDetectorOptions())
+              .withFaceLandmarks()
+              .withFaceDescriptors();
 
-          const ctx = attOverlay.getContext("2d");
-          ctx.clearRect(0, 0, attOverlay.width, attOverlay.height);
+            const ctx = attOverlay.getContext("2d");
+            ctx.clearRect(0, 0, attOverlay.width, attOverlay.height);
 
-          for (const det of faceapi.resizeResults(detections, { width: attOverlay.width, height: attOverlay.height })) {
-            const match = matcher.findBestMatch(det.descriptor);
-            const box = det.detection.box;
-            ctx.strokeStyle = match.label !== "unknown" ? "#16a34a" : "#dc2626";
-            ctx.lineWidth = 3;
-            ctx.strokeRect(box.x, box.y, box.width, box.height);
+            for (const det of faceapi.resizeResults(detections, { width: attOverlay.width, height: attOverlay.height })) {
+              const match = matcher.findBestMatch(det.descriptor);
+              const box = det.detection.box;
+              ctx.strokeStyle = match.label !== "unknown" ? "#16a34a" : "#dc2626";
+              ctx.lineWidth = 3;
+              ctx.strokeRect(box.x, box.y, box.width, box.height);
 
-            if (match.label !== "unknown") {
+              if (match.label === "unknown") continue;
               const person = candidates.find((p) => p.id === match.label);
-              if (person) {
-                if (mode === "student") presentStudentIds.add(person.id);
-                else presentCookIds.add(person.id);
+              if (!person) continue;
 
+              const set = mode === "student" ? presentStudentIds : presentCookIds;
+              if (set.has(person.id)) {
+                cameraFeedback.textContent = `पहले से उपस्थित: ${person.name}`;
+                continue;
+              }
+              set.add(person.id);
+              try {
                 await db.collection("attendance").doc(today).set({
                   date: today,
-                  students: Array.from(presentStudentIds),
-                  cooks: Array.from(presentCookIds)
+                  [mode === "student" ? "students" : "cooks"]: firebase.firestore.FieldValue.arrayUnion(person.id)
                 }, { merge: true });
-
                 cameraFeedback.textContent = `उपस्थित दर्ज: ${person.name}`;
-                if (excelDateInput.value === today) renderTable(today);
+              } catch (err) {
+                set.delete(person.id);
+                cameraFeedback.textContent = "उपस्थिति सेव नहीं हो सकी, इंटरनेट जाँचें।";
               }
+              if (excelDateInput.value === today) renderTable(today);
             }
+          } catch (err) {
+            console.error(err);
+          } finally {
+            busy = false;
           }
         }, 900);
       }
@@ -721,42 +748,143 @@
         return Array.from(det.descriptor);
       }
 
-      studentForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const name = document.getElementById("m-student-name").value.trim();
-        const fatherName = document.getElementById("m-student-father").value.trim();
-        const studentClass = document.getElementById("m-student-class").value;
-        const rollNo = Number(document.getElementById("m-student-roll").value);
-
-        try {
-          modalFeedback.textContent = "चेहरा सेव हो रहा है...";
-          const descriptor = await captureDescriptor();
-          const ref = await db.collection("students").add({ name, fatherName, class: studentClass, rollNo, descriptor });
-          studentsCache.push({ id: ref.id, name, fatherName, class: studentClass, rollNo, descriptor: new Float32Array(descriptor) });
-          studentForm.reset();
-          renderTable(excelDateInput.value || today);
-          regStatusMsg.textContent = `बच्चा जुड़ गया: ${name}`;
-          closeModal();
-        } catch (err) {
-          modalFeedback.textContent = err.message;
+      // ---- डुप्लीकेट रोकना ----
+      const norm = (v) => String(v || "").replace(/\s+/g, " ").trim().toLowerCase();
+      const faceDist = (a, b) => {
+        let sum = 0;
+        for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; sum += d * d; }
+        return Math.sqrt(sum);
+      };
+      function findSameFace(descriptor) {
+        const all = [
+          ...studentsCache.map((p) => ({ p, t: "बच्चा" })),
+          ...cooksCache.map((p) => ({ p, t: "रसोइया" }))
+        ];
+        for (const { p, t } of all) {
+          if (p.descriptor && p.descriptor.length === descriptor.length && faceDist(descriptor, p.descriptor) < 0.45) return { p, t };
         }
-      });
+        return null;
+      }
 
-      cookForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const name = document.getElementById("m-cook-name").value.trim();
+      async function registerPerson(kind) {
+        if (saving) return;
+        let name, fatherName = "", studentClass = "", rollNo = 0;
+        if (kind === "student") {
+          name = document.getElementById("m-student-name").value.trim();
+          fatherName = document.getElementById("m-student-father").value.trim();
+          studentClass = document.getElementById("m-student-class").value;
+          rollNo = Number(document.getElementById("m-student-roll").value);
+        } else {
+          name = document.getElementById("m-cook-name").value.trim();
+        }
+        if (!name) { modalFeedback.textContent = "नाम लिखें।"; return; }
 
+        saving = true;
+        const btns = [...modalBackdrop.querySelectorAll('form button:not([type="button"])')];
+        btns.forEach((b) => { b.disabled = true; });
         try {
+          const sameName = kind === "student"
+            ? studentsCache.find((x) => norm(x.name) === norm(name) && norm(x.fatherName) === norm(fatherName) && String(x.class) === String(studentClass))
+            : cooksCache.find((x) => norm(x.name) === norm(name));
+          if (sameName) {
+            modalFeedback.textContent = `${name} पहले से जुड़ा हुआ है, दोबारा नहीं जोड़ा जा सकता।`;
+            return;
+          }
+
           modalFeedback.textContent = "चेहरा सेव हो रहा है...";
           const descriptor = await captureDescriptor();
-          const ref = await db.collection("cooks").add({ name, descriptor });
-          cooksCache.push({ id: ref.id, name, descriptor: new Float32Array(descriptor) });
-          cookForm.reset();
+
+          const same = findSameFace(descriptor);
+          if (same) {
+            modalFeedback.textContent = `यह चेहरा पहले से रजिस्टर है: ${same.p.name} (${same.t})।`;
+            return;
+          }
+
+          if (kind === "student") {
+            const ref = await db.collection("students").add({ name, fatherName, class: studentClass, rollNo, descriptor });
+            studentsCache.push({ id: ref.id, name, fatherName, class: studentClass, rollNo, descriptor: new Float32Array(descriptor) });
+            studentForm.reset();
+            regStatusMsg.textContent = `बच्चा जुड़ गया: ${name}`;
+          } else {
+            const ref = await db.collection("cooks").add({ name, descriptor });
+            cooksCache.push({ id: ref.id, name, descriptor: new Float32Array(descriptor) });
+            cookForm.reset();
+            regStatusMsg.textContent = `रसोइया जुड़ गया: ${name}`;
+          }
           renderTable(excelDateInput.value || today);
-          regStatusMsg.textContent = `रसोइया जुड़ गया: ${name}`;
           closeModal();
         } catch (err) {
-          modalFeedback.textContent = err.message;
+          modalFeedback.textContent = err.message || "सेव नहीं हो सका, दोबारा कोशिश करें।";
+        } finally {
+          saving = false;
+          btns.forEach((b) => { b.disabled = false; });
+        }
+      }
+
+      studentForm.addEventListener("submit", (e) => { e.preventDefault(); registerPerson("student"); });
+      cookForm.addEventListener("submit", (e) => { e.preventDefault(); registerPerson("cook"); });
+
+      // ---- पहले से बने डुप्लीकेट पकड़ना व हटाना ----
+      const dupBanner = document.getElementById("dup-banner");
+      const dupFixBtn = document.getElementById("dup-fix-btn");
+      let dupGroups = [];
+
+      function findDupGroups() {
+        const groups = [];
+        const scan = (list, coll, label, keyFn) => {
+          const m = new Map();
+          list.forEach((p) => {
+            if (!norm(p.name)) return;
+            const k = keyFn(p);
+            if (!m.has(k)) m.set(k, []);
+            m.get(k).push(p);
+          });
+          m.forEach((arr) => { if (arr.length > 1) groups.push({ coll, label, name: arr[0].name, items: arr }); });
+        };
+        scan(studentsCache, "students", "बच्चा", (p) => `${norm(p.name)}|${norm(p.fatherName)}|${p.class}`);
+        scan(cooksCache, "cooks", "रसोइया", (p) => norm(p.name));
+        return groups;
+      }
+
+      function showDup() {
+        dupGroups = findDupGroups();
+        if (!dupGroups.length) { dupBanner.classList.add("hidden"); return; }
+        document.getElementById("dup-text").textContent =
+          "⚠ डुप्लीकेट रजिस्ट्रेशन मिला: " + dupGroups.map((g) => `${g.name} (${g.label}, ${g.items.length} बार)`).join(", ");
+        dupBanner.classList.remove("hidden");
+      }
+
+      dupFixBtn.addEventListener("click", async () => {
+        if (!dupGroups.length) return;
+        const list = dupGroups.map((g) => `• ${g.name} (${g.label}) - ${g.items.length} बार`).join("\n");
+        if (!confirm(`इन सबकी सिर्फ़ एक एंट्री रखी जाएगी, बाकी हटा दी जाएँगी:\n${list}\n\nआगे बढ़ें?`)) return;
+        dupFixBtn.disabled = true;
+        try {
+          const attSnap = await db.collection("attendance").get();
+          for (const g of dupGroups) {
+            const field = g.coll === "students" ? "students" : "cooks";
+            const presentSet = g.coll === "students" ? presentStudentIds : presentCookIds;
+            const sorted = [...g.items].sort((a, b) => Number(presentSet.has(b.id)) - Number(presentSet.has(a.id)));
+            const keep = sorted[0];
+            const removeIds = sorted.slice(1).map((x) => x.id);
+
+            // पुरानी उपस्थिति में हटाई गई id की जगह रखी गई id जोड़ना
+            for (const doc of attSnap.docs) {
+              const arr = doc.data()[field] || [];
+              if (removeIds.some((id) => arr.includes(id))) {
+                await doc.ref.update({ [field]: firebase.firestore.FieldValue.arrayRemove(...removeIds) });
+                await doc.ref.update({ [field]: firebase.firestore.FieldValue.arrayUnion(keep.id) });
+              }
+            }
+            for (const id of removeIds) await db.collection(g.coll).doc(id).delete();
+          }
+          await loadDataForDate(loadedDate || today);
+          regStatusMsg.textContent = "डुप्लीकेट हटा दिए गए।";
+        } catch (err) {
+          console.error(err);
+          regStatusMsg.textContent = "डुप्लीकेट हटाने में समस्या आई, दोबारा कोशिश करें।";
+        } finally {
+          dupFixBtn.disabled = false;
         }
       });
 
