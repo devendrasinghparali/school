@@ -2,47 +2,239 @@
 <html lang="hi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#14213d" />
   <title>स्कूल लॉगिन | शासकीय विद्यालय प्रबंधन प्रणाली</title>
 
-  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700;800&display=swap" rel="stylesheet" />
 
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
   <script defer src="firebase-config.js"></script>
-  <script defer src="app.js"></script>
+
+  <style>
+    :root {
+      --ink: #14213d; --ink-soft: #3d4a63; --muted: #6b7690;
+      --teal: #0f766e; --teal-dark: #0b5a54; --saffron: #e8890c;
+      --red: #b42318; --line: #dde3ee; --tint: #f5f7fb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: "Mukta", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink); line-height: 1.5; font-size: 16px; min-height: 100vh; min-height: 100dvh;
+      background:
+        radial-gradient(900px 500px at 85% -10%, rgba(232, 137, 12, 0.28), transparent 60%),
+        radial-gradient(700px 500px at -10% 110%, rgba(15, 118, 110, 0.35), transparent 60%),
+        linear-gradient(160deg, #14213d 0%, #1b2d52 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    }
+    :focus-visible { outline: 3px solid var(--saffron); outline-offset: 2px; }
+
+    .wrap { width: 100%; max-width: 420px; }
+
+    .card {
+      background: #fff; border-radius: 22px; padding: 74px 22px 24px; position: relative;
+      box-shadow: 0 24px 60px rgba(5, 10, 25, 0.45);
+    }
+    @media (min-width: 480px) { .card { padding: 78px 30px 30px; } }
+
+    .logo-wrap {
+      position: absolute; top: -50px; left: 50%; transform: translateX(-50%);
+      width: 100px; height: 100px; border-radius: 50%; background: #fff;
+      border: 4px solid var(--saffron); box-shadow: 0 8px 24px rgba(5, 10, 25, 0.35);
+      display: grid; place-items: center; overflow: hidden;
+    }
+    .logo-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .school { text-align: center; font-size: 1.45rem; font-weight: 800; line-height: 1.3; }
+    .portal { text-align: center; color: var(--muted); font-weight: 600; font-size: 0.92rem; margin-top: 4px; }
+    .divider { height: 3px; width: 56px; background: var(--saffron); border-radius: 3px; margin: 14px auto 18px; }
+
+    h2 { font-size: 1.15rem; text-align: center; }
+    .hint { text-align: center; font-size: 0.92rem; color: var(--muted); margin: 2px 0 18px; }
+
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-weight: 600; font-size: 0.92rem; margin-bottom: 5px; color: var(--ink-soft); }
+    input {
+      width: 100%; min-height: 50px; padding: 11px 14px; border: 1.5px solid #c8d1e2; border-radius: 12px;
+      font: inherit; font-size: 1rem; background: #fff; color: var(--ink);
+    }
+    input:focus { border-color: var(--teal); outline: 3px solid rgba(15, 118, 110, 0.2); outline-offset: 0; }
+
+    .pw-box { position: relative; }
+    .pw-box input { padding-right: 78px; }
+    .pw-toggle {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: none; background: transparent;
+      color: var(--teal); font: inherit; font-weight: 700; font-size: 0.92rem; padding: 8px 10px; cursor: pointer; border-radius: 8px;
+    }
+
+    .btn {
+      width: 100%; min-height: 52px; border: none; border-radius: 12px; background: var(--teal); color: #fff;
+      font: inherit; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: background 0.15s, transform 0.1s;
+      margin-top: 4px;
+    }
+    .btn:hover { background: var(--teal-dark); }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.65; cursor: not-allowed; }
+
+    .link-btn {
+      display: block; margin: 14px auto 0; border: none; background: none; color: var(--ink-soft);
+      font: inherit; font-weight: 600; font-size: 0.92rem; text-decoration: underline; cursor: pointer; padding: 6px 10px;
+    }
+
+    .msg { margin-top: 14px; border-radius: 10px; padding: 10px 12px; font-size: 0.95rem; font-weight: 600; text-align: center; }
+    .msg:empty { display: none; }
+    .msg.err { background: #fde4e1; color: #9a1c12; }
+    .msg.ok { background: #dcf5e7; color: #0f5f38; }
+
+    .foot { text-align: center; color: #aeb9d3; font-size: 0.85rem; font-weight: 600; margin-top: 18px; }
+
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
 </head>
 <body data-page="login">
-  <header class="topbar">
-    <div>
-      <h1>शासकीय विद्यालय पोर्टल (कक्षा 1–8)</h1>
-      <p class="subtitle">सिंगल स्कूल लॉगिन</p>
-    </div>
-  </header>
+  <div class="wrap">
+    <main class="card">
+      <!-- ▼ स्कूल का लोगो: नीचे src में अपनी इमेज की लिंक डालें (बाद में बदलने के लिए) -->
+      <div class="logo-wrap">
+        <img id="school-logo" src="https://placehold.co/200x200/14213d/ffffff?text=LOGO" alt="स्कूल का लोगो" />
+      </div>
+      <!-- ▲ लोगो समाप्त -->
 
-  <main class="container center-screen">
-    <section class="card narrow-card">
+      <h1 class="school" id="school-name">शासकीय एकीकृत माध्यमिक विद्यालय हरिपुरा</h1>
+      <p class="portal">शासकीय विद्यालय पोर्टल (कक्षा 1–8)</p>
+      <div class="divider"></div>
+
       <h2>स्कूल लॉगिन</h2>
       <p class="hint">कृपया अपना अधिकृत स्कूल ईमेल और पासवर्ड दर्ज करें।</p>
 
-      <form id="login-form">
+      <form id="login-form" novalidate>
         <div class="form-group">
           <label for="login-email">स्कूल ईमेल आईडी</label>
-          <input type="email" id="login-email" required placeholder="school@example.com" />
+          <input type="email" id="login-email" placeholder="school@example.com" autocomplete="username" inputmode="email" autocapitalize="off" required />
         </div>
 
         <div class="form-group">
           <label for="login-password">पासवर्ड</label>
-          <input type="password" id="login-password" required placeholder="••••••••" />
+          <div class="pw-box">
+            <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" required />
+            <button type="button" id="pw-toggle" class="pw-toggle" aria-label="पासवर्ड दिखाएँ">दिखाएँ</button>
+          </div>
         </div>
 
-        <button type="submit" class="btn btn-primary full-width">लॉगिन करें</button>
+        <button type="submit" id="login-btn" class="btn">लॉगिन करें</button>
       </form>
 
-      <p id="login-error" class="error-text"></p>
-    </section>
-  </main>
+      <button type="button" id="forgot-btn" class="link-btn">पासवर्ड भूल गए?</button>
+      <p id="login-msg" class="msg" role="status" aria-live="polite"></p>
+    </main>
+
+    <p class="foot">© शासकीय विद्यालय प्रबंधन प्रणाली</p>
+  </div>
+
+  <script>
+    // ▼ लॉगिन के बाद इसी पते पर भेजा जाएगा (बदलना हो तो यहीं बदलें)
+    const HOME_URL = "https://school.mpschoolguide.in/home";
+
+    // अगर ऊपर लगाई गई लोगो की लिंक न खुले तो यह डिफ़ॉल्ट लोगो दिखेगा
+    const FALLBACK_LOGO = "data:image/svg+xml;utf8," + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" fill="#14213d"/>' +
+      '<path d="M60 22 18 44l42 22 34-18v26h8V44L60 22Z" fill="#e8890c"/>' +
+      '<path d="M34 62v18c0 8 12 14 26 14s26-6 26-14V62L60 76 34 62Z" fill="#fff"/></svg>'
+    );
+
+    const $ = (id) => document.getElementById(id);
+    let redirecting = false;
+
+    function say(text, type) {
+      const el = $("login-msg");
+      el.textContent = text || "";
+      el.className = "msg" + (type ? " " + type : "");
+    }
+
+    function goHome() {
+      if (redirecting) return;
+      redirecting = true;
+      window.location.replace(HOME_URL);
+    }
+
+    function errText(err) {
+      switch (err && err.code) {
+        case "auth/invalid-email": return "ईमेल आईडी सही नहीं है।";
+        case "auth/user-not-found":
+        case "auth/wrong-password":
+        case "auth/invalid-credential":
+        case "auth/invalid-login-credentials": return "ईमेल या पासवर्ड गलत है।";
+        case "auth/user-disabled": return "यह खाता बंद कर दिया गया है।";
+        case "auth/too-many-requests": return "बहुत ज़्यादा प्रयास हो गए, कुछ देर बाद फिर कोशिश करें।";
+        case "auth/network-request-failed": return "इंटरनेट कनेक्शन जाँचकर दोबारा कोशिश करें।";
+        default: return "लॉगिन नहीं हो सका, दोबारा कोशिश करें।";
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // लोगो की लिंक न खुले तो डिफ़ॉल्ट लोगो
+      const logo = $("school-logo");
+      logo.addEventListener("error", () => { if (logo.src !== FALLBACK_LOGO) logo.src = FALLBACK_LOGO; });
+
+      if (typeof auth === "undefined") {
+        say("Firebase सेटिंग (firebase-config.js) नहीं मिली।", "err");
+        $("login-btn").disabled = true;
+        return;
+      }
+
+      // पहले से लॉगिन हो तो सीधे होम पर
+      auth.onAuthStateChanged((user) => { if (user) goHome(); });
+
+      // पासवर्ड दिखाएँ / छुपाएँ
+      $("pw-toggle").addEventListener("click", () => {
+        const pw = $("login-password");
+        const show = pw.type === "password";
+        pw.type = show ? "text" : "password";
+        $("pw-toggle").textContent = show ? "छुपाएँ" : "दिखाएँ";
+        $("pw-toggle").setAttribute("aria-label", show ? "पासवर्ड छुपाएँ" : "पासवर्ड दिखाएँ");
+      });
+
+      // लॉगिन
+      $("login-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = $("login-email").value.trim();
+        const password = $("login-password").value;
+        if (!email || !password) { say("ईमेल और पासवर्ड दोनों भरें।", "err"); return; }
+
+        const btn = $("login-btn");
+        btn.disabled = true;
+        btn.textContent = "लॉगिन हो रहा है...";
+        say("");
+        try {
+          await auth.signInWithEmailAndPassword(email, password);
+          say("लॉगिन सफल! डैशबोर्ड खुल रहा है...", "ok");
+          goHome();
+        } catch (err) {
+          console.error(err);
+          say(errText(err), "err");
+          btn.disabled = false;
+          btn.textContent = "लॉगिन करें";
+        }
+      });
+
+      // पासवर्ड भूल गए
+      $("forgot-btn").addEventListener("click", async () => {
+        const email = $("login-email").value.trim();
+        if (!email) { say("पासवर्ड रीसेट के लिए ऊपर अपना ईमेल लिखें।", "err"); $("login-email").focus(); return; }
+        try {
+          await auth.sendPasswordResetEmail(email);
+          say("पासवर्ड रीसेट का लिंक आपके ईमेल पर भेज दिया गया है।", "ok");
+        } catch (err) {
+          say(errText(err), "err");
+        }
+      });
+    });
+  </script>
 </body>
 </html>
