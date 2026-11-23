@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#14213d" />
+  <title>जावक पत्र | शासकीय एकीकृत माध्यमिक विद्यालय हरिपुरा</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script defer src="firebase-config.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    :root {
+      --ink: #14213d; --ink-soft: #3d4a63; --muted: #6b7690;
+      --teal: #0f766e; --teal-dark: #0b5a54; --saffron: #e8890c;
+      --green: #16794a; --red: #b42318;
+      --bg: #eef1f6; --card: #ffffff; --line: #dde3ee; --tint: #f5f7fb; --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: "Mukta", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--ink); min-height: 100vh; line-height: 1.5; font-size: 16px;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    :focus-visible { outline: 3px solid var(--saffron); outline-offset: 2px; }
+    .hidden { display: none !important; }
+
+    /* Header */
+    .topbar { background: var(--ink); color: #fff; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 0; border-bottom: 4px solid var(--saffron); }
+    .topbar-inner { max-width: 960px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; }
+    .brand-mark { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--saffron); color: var(--ink); display: grid; place-items: center; font-weight: 800; font-size: 1.15rem; }
+    .school-tag { display: block; font-size: 0.8rem; font-weight: 600; color: #b9c4dc; }
+    .topbar h1 { font-size: 1.3rem; font-weight: 700; line-height: 1.25; }
+    .header-actions { display: flex; gap: 8px; align-items: center; overflow-x: auto; padding: 2px 0 14px; scrollbar-width: none; }
+    .header-actions::-webkit-scrollbar { display: none; }
+    .header-actions .btn { flex: none; background: rgba(255, 255, 255, 0.14); color: #fff; }
+    .header-actions .btn-logout { background: transparent; color: #ffb4ad; border: 1.5px solid rgba(255, 180, 173, 0.5); }
+
+    .container { max-width: 960px; margin: 16px auto 32px; padding: 0 12px; display: flex; flex-direction: column; gap: 14px; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 14px; border: 1px solid var(--line); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center; text-decoration: none;
+      border: none; border-radius: 10px; padding: 10px 14px; min-height: 44px; font: inherit; font-size: 0.98rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: background 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-sm { min-height: 40px; padding: 7px 14px; font-size: 0.92rem; border-radius: 999px; }
+    .btn-primary { background: var(--teal); color: #fff; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-light { background: #e9edf5; color: var(--ink); }
+    .btn-danger-soft { background: #fde4e1; color: #9a1c12; }
+
+    /* Toolbar */
+    .toolbar { position: sticky; top: 0; z-index: 20; padding: 8px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 14px rgba(20, 33, 61, 0.08); }
+    .tool-row { display: flex; gap: 6px; align-items: center; overflow-x: auto; scrollbar-width: none; padding: 1px; }
+    .tool-row::-webkit-scrollbar { display: none; }
+    .tool-row > * { flex: none; }
+    .tb { min-width: 42px; min-height: 42px; padding: 6px 10px; border-radius: 9px; background: #e9edf5; color: var(--ink); border: none; font: inherit; font-size: 1rem; font-weight: 700; cursor: pointer; }
+    .tb:active { background: #cfd8ea; }
+    .tb.wide { padding: 6px 12px; font-size: 0.9rem; white-space: nowrap; }
+    .tb.warn { background: #fde4e1; color: #9a1c12; }
+    .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
+    .mini-lbl { font-size: 0.82rem; color: var(--muted); font-weight: 600; white-space: nowrap; }
+    .num { width: 54px; min-height: 42px; text-align: center; border: 1.5px solid #c8d1e2; border-radius: 9px; font: inherit; font-size: 1rem; }
+
+    /* Paper (on-screen) */
+    .paper {
+      background: #fff; width: 100%; max-width: 794px; margin: 0 auto; border: 1px solid #cfd6e4; border-radius: 6px;
+      box-shadow: 0 6px 24px rgba(20, 33, 61, 0.1); padding: 22px 16px 28px; color: #000;
+    }
+    @media (min-width: 700px) { .paper { padding: 40px 48px 48px; } }
+    .paper input, .paper textarea {
+      width: 100%; border: none; border-bottom: 1.5px dashed #b8c2d6; border-radius: 0; background: transparent;
+      font: inherit; color: #000; padding: 4px 2px; text-align: center; outline: none; min-height: 0;
+    }
+    .paper input:focus, .paper textarea:focus { border-bottom: 1.5px solid var(--teal); background: #f1faf9; }
+    .lh-name { font-size: 1.45rem; font-weight: 800; line-height: 1.3; resize: none; overflow: hidden; display: block; }
+    @media (min-width: 700px) { .lh-name { font-size: 1.9rem; } }
+    .lh-line { display: flex; align-items: baseline; justify-content: center; gap: 6px; margin-top: 6px; font-size: 1.02rem; }
+    .lh-line b { font-weight: 700; white-space: nowrap; }
+    .lh-line input { max-width: 330px; font-weight: 600; }
+    .rule { border-top: 2.5px double #000; margin: 12px 0 14px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px 24px; justify-content: space-between; }
+    .meta label { display: flex; align-items: baseline; gap: 6px; flex: 1 1 230px; font-weight: 700; margin: 0; }
+    .meta label span { white-space: nowrap; }
+    .meta input { text-align: left; border: 1.5px solid #b8c2d6; border-radius: 8px; padding: 8px 10px; font-weight: 600; background: #fff; }
+    .meta input:focus { border-color: var(--teal); }
+    .body-label { margin: 18px 0 6px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+
+    /* Letter body (editor + print) */
+    .letter-body { font-size: 16px; line-height: 1.75; word-break: break-word; }
+    .letter-body p { margin: 0 0 0.55em; min-height: 1.2em; }
+    .letter-body table { border-collapse: collapse; width: 100%; table-layout: fixed; margin: 8px 0 12px; }
+    .letter-body td, .letter-body th { border: 1px solid #000; padding: 6px 8px; height: 32px; vertical-align: top; word-break: break-word; line-height: 1.45; }
+    .letter-body font[size="1"] { font-size: 11px; }
+    .letter-body font[size="2"] { font-size: 13px; }
+    .letter-body font[size="3"] { font-size: 16px; }
+    .letter-body font[size="4"] { font-size: 19px; }
+    .letter-body font[size="5"] { font-size: 23px; }
+    .letter-body font[size="6"] { font-size: 28px; }
+    .letter-body font[size="7"] { font-size: 34px; }
+    #editor { min-height: 380px; border: 1.5px dashed #b8c2d6; border-radius: 8px; padding: 12px; outline: none; background: #fff; }
+    #editor:focus { border-color: var(--teal); background: #fcfffe; }
+    #editor:empty::before { content: attr(data-placeholder); color: #98a3ba; }
+
+    .opts { display: flex; flex-direction: column; gap: 10px; }
+    .check { display: flex; align-items: center; gap: 10px; font-weight: 600; margin: 0; }
+    .check input { width: 22px; height: 22px; accent-color: var(--teal); flex: none; }
+    .action-row { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    @media (min-width: 600px) { .action-row { grid-template-columns: 1fr 1fr 1fr; } }
+    .msg { font-size: 0.95rem; font-weight: 600; border-radius: 10px; padding: 9px 12px; background: var(--tint); color: var(--ink-soft); }
+    .msg:empty { display: none; }
+    .msg.ok { background: #dcf5e7; color: #0f5f38; }
+    .msg.err { background: #fde4e1; color: #9a1c12; }
+
+    /* A4 print/PDF copy */
+    #print-root { position: absolute; left: -10000px; top: 0; width: 794px; background: #fff; color: #000; }
+    .a4 { width: 794px; min-height: 1123px; padding: 52px 58px 56px; background: #fff; color: #000; font-family: "Mukta", "Noto Sans Devanagari", sans-serif; }
+    .a4-name { text-align: center; font-size: 30px; font-weight: 800; line-height: 1.3; }
+    .a4-line { text-align: center; font-size: 15px; font-weight: 600; margin-top: 5px; }
+    .a4-rule { border-top: 3px double #000; margin: 12px 0 16px; }
+    .a4-meta { display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; margin-bottom: 18px; }
+    .a4 .letter-body { font-size: 16px; }
+
+    @page { size: A4; margin: 0; }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .topbar, .container { display: none !important; }
+      #print-root { position: static !important; left: auto !important; width: 210mm !important; }
+      .a4 { width: 210mm; min-height: 296mm; padding: 16mm 16mm 18mm; }
+      .letter-body tr { break-inside: avoid; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">जा</div>
+        <div>
+          <span class="school-tag">शासकीय एकीकृत माध्यमिक विद्यालय हरिपुरा</span>
+          <h1>जावक पत्र (A4)</h1>
+        </div>
+      </div>
+      <nav class="header-actions" aria-label="मुख्य मेनू">
+        <a href="home.html" class="btn btn-sm">होम</a>
+        <a href="attendance.html" class="btn btn-sm">उपस्थिति</a>
+        <a href="mdm.html" class="btn btn-sm">MDM</a>
+        <button type="button" id="logout-btn" class="btn btn-logout btn-sm">लॉगआउट</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- टूलबार -->
+    <section class="card toolbar" aria-label="एडिट टूल">
+      <div class="tool-row" id="text-tools">
+        <button type="button" class="tb" data-cmd="bold" title="बोल्ड"><b>B</b></button>
+        <button type="button" class="tb" data-cmd="italic" title="तिरछा"><i>I</i></button>
+        <button type="button" class="tb" data-cmd="underline" title="रेखांकित"><u>U</u></button>
+        <span class="sep"></span>
+        <button type="button" class="tb" data-size="-1" title="अक्षर छोटे">A−</button>
+        <button type="button" class="tb" data-size="1" title="अक्षर बड़े">A+</button>
+        <span class="sep"></span>
+        <button type="button" class="tb" data-cmd="justifyLeft" title="बाएँ">⇤</button>
+        <button type="button" class="tb" data-cmd="justifyCenter" title="बीच में">↔</button>
+        <button type="button" class="tb" data-cmd="justifyRight" title="दाएँ">⇥</button>
+        <span class="sep"></span>
+        <button type="button" class="tb wide" id="tpl-btn">पत्र का प्रारूप</button>
+        <button type="button" class="tb wide warn" id="clear-body-btn">बॉक्स खाली करें</button>
+      </div>
+      <div class="tool-row" id="table-tools">
+        <span class="mini-lbl">टेबल:</span>
+        <input type="number" id="t-rows" class="num" value="3" min="1" max="30" aria-label="पंक्तियाँ" />
+        <span class="mini-lbl">×</span>
+        <input type="number" id="t-cols" class="num" value="3" min="1" max="8" aria-label="कॉलम" />
+        <button type="button" class="tb wide" id="t-insert">टेबल जोड़ें</button>
+        <span class="sep"></span>
+        <button type="button" class="tb wide" id="t-addrow">+ पंक्ति</button>
+        <button type="button" class="tb wide" id="t-delrow">− पंक्ति</button>
+        <button type="button" class="tb wide" id="t-addcol">+ कॉलम</button>
+        <button type="button" class="tb wide" id="t-delcol">− कॉलम</button>
+        <button type="button" class="tb wide warn" id="t-deltable">टेबल हटाएँ</button>
+      </div>
+    </section>
+
+    <!-- पत्र (A4) -->
+    <section class="paper" aria-label="जावक पत्र">
+      <textarea id="f-name" class="lh-name" rows="2" aria-label="विद्यालय का नाम"></textarea>
+      <div class="lh-line"><b>डाइस कोड :</b><input type="text" id="f-dise" aria-label="डाइस कोड" inputmode="numeric" /></div>
+      <div class="lh-line"><b>ई-मेल :</b><input type="text" id="f-email" aria-label="ई-मेल" inputmode="email" autocapitalize="off" /></div>
+      <div class="rule"></div>
+
+      <div class="meta">
+        <label><span>जावक क्रमांक :</span><input type="text" id="f-no" placeholder="जैसे: 125" /></label>
+        <label><span>दिनांक :</span><input type="date" id="f-date" /></label>
+      </div>
+
+      <p class="body-label">जावक का विवरण</p>
+      <div id="editor" class="letter-body" contenteditable="true" data-placeholder="यहाँ जावक का विवरण या एप्लीकेशन लिखें..." spellcheck="false"></div>
+    </section>
+
+    <!-- डाउनलोड / प्रिंट -->
+    <section class="card opts">
+      <label class="check"><input type="checkbox" id="only-body" /> केवल विवरण/एप्लीकेशन छापें (स्कूल का नाम, क्रमांक और दिनांक के बिना)</label>
+      <div class="action-row">
+        <button type="button" id="pdf-btn" class="btn btn-success">PDF डाउनलोड (A4)</button>
+        <button type="button" id="print-btn" class="btn btn-primary">प्रिंट करें</button>
+        <button type="button" id="new-btn" class="btn btn-light">नया जावक</button>
+      </div>
+      <p id="msg" class="msg" role="status"></p>
+    </section>
+  </main>
+
+  <div id="print-root" aria-hidden="true"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const DEFAULTS = {
+      name: "शासकीय एकीकृत माध्यमिक विद्यालय हरिपुरा",
+      dise: "23190824401",
+      email: "Govtmsharipura@gmail.com"
+    };
+    const KEY = "jawak-draft-v1";
+
+    const todayISO = () => {
+      const n = new Date();
+      return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+    };
+    const fmtDate = (iso) => (iso ? iso.split("-").reverse().join("/") : "");
+
+    function say(text, type) {
+      const el = $("msg");
+      el.textContent = text || "";
+      el.className = "msg" + (type ? " " + type : "");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      init();
+      if (typeof auth !== "undefined") {
+        $("logout-btn").addEventListener("click", async () => {
+          await auth.signOut();
+          window.location.href = "index.html";
+        });
+        auth.onAuthStateChanged((user) => { if (!user) window.location.href = "index.html"; });
+      } else {
+        $("logout-btn").classList.add("hidden");
+      }
+    });
+
+    function init() {
+      const editor = $("editor");
+      const nameEl = $("f-name");
+      let savedRange = null;
+
+      try { document.execCommand("defaultParagraphSeparator", false, "p"); } catch (e) {}
+      try { document.execCommand("styleWithCSS", false, false); } catch (e) {}
+
+      // ---- भरी हुई जानकारी (एडिट करने योग्य) ----
+      let draft = {};
+      try { draft = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+      nameEl.value = draft.name || DEFAULTS.name;
+      $("f-dise").value = draft.dise || DEFAULTS.dise;
+      $("f-email").value = draft.email || DEFAULTS.email;
+      $("f-no").value = draft.no || "";
+      $("f-date").value = todayISO();
+      editor.innerHTML = draft.body || "";
+      $("only-body").checked = !!draft.onlyBody;
+
+      function fitName() { nameEl.style.height = "auto"; nameEl.style.height = nameEl.scrollHeight + "px"; }
+      fitName();
+      window.addEventListener("resize", fitName);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitName);
+
+      let t = null;
+      function persist() {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          try {
+            localStorage.setItem(KEY, JSON.stringify({
+              name: nameEl.value, dise: $("f-dise").value, email: $("f-email").value,
+              no: $("f-no").value, body: editor.innerHTML, onlyBody: $("only-body").checked
+            }));
+          } catch (e) {}
+        }, 300);
+      }
+      ["f-name", "f-dise", "f-email", "f-no"].forEach((id) => $(id).addEventListener("input", () => { if (id === "f-name") fitName(); persist(); }));
+      $("only-body").addEventListener("change", persist);
+      editor.addEventListener("input", persist);
+
+      // सादा टेक्स्ट पेस्ट
+      editor.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData("text/plain");
+        document.execCommand("insertText", false, text);
+      });
+
+      // ---- चयन (selection) याद रखना ----
+      document.addEventListener("selectionchange", () => {
+        const s = window.getSelection();
+        if (s.rangeCount) {
+          const r = s.getRangeAt(0);
+          if (editor.contains(r.commonAncestorContainer)) savedRange = r.cloneRange();
+        }
+      });
+      function restore() {
+        editor.focus({ preventScroll: true });
+        if (savedRange) {
+          const s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(savedRange);
+        }
+      }
+      // टूलबार दबाने पर चयन न हटे
+      document.querySelector(".toolbar").addEventListener("mousedown", (e) => {
+        if (e.target.closest("button")) e.preventDefault();
+      });
+
+      function cmd(name, val) {
+        restore();
+        document.execCommand(name, false, val || null);
+        persist();
+      }
+
+      $("text-tools").addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        if (b.dataset.cmd) cmd(b.dataset.cmd);
+        else if (b.dataset.size) {
+          restore();
+          let cur = parseInt(document.queryCommandValue("fontSize"), 10);
+          if (isNaN(cur)) cur = 3;
+          cur = Math.min(7, Math.max(1, cur + Number(b.dataset.size)));
+          document.execCommand("fontSize", false, String(cur));
+          persist();
+        }
+      });
+
+      $("tpl-btn").addEventListener("click", () => {
+        restore();
+        document.execCommand("insertHTML", false,
+          "<p>सेवा में,<br>श्रीमान ____________,<br>____________</p>" +
+          "<p><b>विषय :</b> ____________</p>" +
+          "<p>महोदय / महोदया,</p>" +
+          "<p>&emsp;&emsp;____________</p>" +
+          '<p style="text-align:right">भवदीय<br>प्रधानाध्यापक</p>');
+        persist();
+      });
+
+      $("clear-body-btn").addEventListener("click", () => {
+        if (!editor.innerHTML.trim()) return;
+        if (confirm("बॉक्स की पूरी सामग्री हटानी है?")) {
+          editor.innerHTML = "";
+          savedRange = null;
+          persist();
+          say("बॉक्स खाली कर दिया गया।", "ok");
+        }
+      });
+
+      // ---- टेबल ----
+      function currentCell() {
+        if (!savedRange) return null;
+        let n = savedRange.startContainer;
+        if (n.nodeType !== 1) n = n.parentElement;
+        const cell = n && n.closest ? n.closest("td,th") : null;
+        return cell && editor.contains(cell) ? cell : null;
+      }
+      function needCell() {
+        const c = currentCell();
+        if (!c) say("पहले टेबल के किसी खाने में क्लिक करें।", "err");
+        else say("");
+        return c;
+      }
+
+      $("t-insert").addEventListener("click", () => {
+        const r = Math.min(30, Math.max(1, parseInt($("t-rows").value, 10) || 3));
+        const c = Math.min(8, Math.max(1, parseInt($("t-cols").value, 10) || 3));
+        let html = "<table><tbody>";
+        for (let i = 0; i < r; i++) {
+          html += "<tr>" + "<td><br></td>".repeat(c) + "</tr>";
+        }
+        html += "</tbody></table><p><br></p>";
+        restore();
+        document.execCommand("insertHTML", false, html);
+        say(`${r} पंक्ति × ${c} कॉलम की टेबल जुड़ गई।`, "ok");
+        persist();
+      });
+
+      $("t-addrow").addEventListener("click", () => {
+        const cell = needCell(); if (!cell) return;
+        const tr = cell.parentElement;
+        const nr = document.createElement("tr");
+        for (let i = 0; i < tr.cells.length; i++) nr.innerHTML += "<td><br></td>";
+        tr.after(nr);
+        persist();
+      });
+      $("t-delrow").addEventListener("click", () => {
+        const cell = needCell(); if (!cell) return;
+        const tr = cell.parentElement, table = tr.closest("table");
+        tr.remove();
+        if (!table.rows.length) table.remove();
+        savedRange = null;
+        persist();
+      });
+      $("t-addcol").addEventListener("click", () => {
+        const cell = needCell(); if (!cell) return;
+        const idx = cell.cellIndex, table = cell.closest("table");
+        if (table.rows[0] && table.rows[0].cells.length >= 8) { say("एक टेबल में अधिकतम 8 कॉलम रखें।", "err"); return; }
+        [...table.rows].forEach((row) => {
+          const td = document.createElement("td");
+          td.innerHTML = "<br>";
+          if (row.cells[idx]) row.cells[idx].after(td); else row.appendChild(td);
+        });
+        persist();
+      });
+      $("t-delcol").addEventListener("click", () => {
+        const cell = needCell(); if (!cell) return;
+        const idx = cell.cellIndex, table = cell.closest("table");
+        [...table.rows].forEach((row) => { if (row.cells[idx]) row.cells[idx].remove(); });
+        if (![...table.rows].some((r) => r.cells.length)) table.remove();
+        savedRange = null;
+        persist();
+      });
+      $("t-deltable").addEventListener("click", () => {
+        const cell = needCell(); if (!cell) return;
+        if (confirm("पूरी टेबल हटानी है?")) { cell.closest("table").remove(); savedRange = null; persist(); }
+      });
+
+      // ---- नया जावक ----
+      $("new-btn").addEventListener("click", () => {
+        if (!confirm("नया जावक शुरू करें? क्रमांक और विवरण साफ़ हो जाएँगे।")) return;
+        $("f-no").value = "";
+        $("f-date").value = todayISO();
+        editor.innerHTML = "";
+        savedRange = null;
+        persist();
+        say("नया जावक तैयार है।", "ok");
+      });
+
+      // ---- A4 कॉपी बनाना ----
+      function buildPage() {
+        const onlyBody = $("only-body").checked;
+        const body = editor.innerHTML.trim();
+        if (!body || editor.textContent.trim() === "" && !editor.querySelector("table")) {
+          say("पहले जावक का विवरण लिखें।", "err");
+          return false;
+        }
+        say("");
+        const head = onlyBody ? "" : `
+          <div class="a4-name">${esc(nameEl.value.trim())}</div>
+          <div class="a4-line">डाइस कोड : ${esc($("f-dise").value.trim())}</div>
+          <div class="a4-line">ई-मेल : ${esc($("f-email").value.trim())}</div>
+          <div class="a4-rule"></div>
+          <div class="a4-meta">
+            <span>जावक क्रमांक : ${esc($("f-no").value.trim())}</span>
+            <span>दिनांक : ${esc(fmtDate($("f-date").value))}</span>
+          </div>`;
+        $("print-root").innerHTML = `<div class="a4">${head}<div class="letter-body">${body}</div></div>`;
+        return true;
+      }
+
+      $("print-btn").addEventListener("click", () => { if (buildPage()) window.print(); });
+
+      $("pdf-btn").addEventListener("click", async () => {
+        if (!buildPage()) return;
+        if (!window.html2canvas || !window.jspdf) {
+          say("PDF टूल लोड नहीं हुआ। इंटरनेट जाँचकर पेज रीफ्रेश करें, या 'प्रिंट करें' से PDF सेव करें।", "err");
+          return;
+        }
+        const btn = $("pdf-btn"), label = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "PDF बन रही है...";
+        try {
+          if (document.fonts && document.fonts.ready) await document.fonts.ready;
+          const canvas = await html2canvas($("print-root"), {
+            scale: 2, backgroundColor: "#ffffff", useCORS: true, width: 794, windowWidth: 794,
+            onclone: (doc) => {
+              const el = doc.getElementById("print-root");
+              el.style.position = "static";
+              el.style.left = "0";
+            }
+          });
+          const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+          const pageW = 210, pageH = 297;
+          const ratio = canvas.width / pageW;
+          const pagePx = Math.floor(pageH * ratio);
+          const pages = Math.max(1, Math.ceil((canvas.height - 4) / pagePx));
+          for (let i = 0; i < pages; i++) {
+            const c = document.createElement("canvas");
+            c.width = canvas.width;
+            c.height = Math.min(pagePx, canvas.height - i * pagePx);
+            const ctx = c.getContext("2d");
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.drawImage(canvas, 0, i * pagePx, canvas.width, c.height, 0, 0, c.width, c.height);
+            if (i > 0) pdf.addPage();
+            pdf.addImage(c.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, pageW, Math.min(pageH, c.height / ratio));
+          }
+          const no = $("f-no").value.trim().replace(/[^\w\u0900-\u097F-]+/g, "-") || "jawak";
+          pdf.save(`Jawak-${no}-${$("f-date").value}.pdf`);
+          say("PDF डाउनलोड हो गई।", "ok");
+        } catch (err) {
+          console.error(err);
+          say("PDF नहीं बन सकी। 'प्रिंट करें' दबाकर 'PDF के रूप में सेव करें' चुनें।", "err");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = label;
+        }
+      });
+    }
+  </script>
+</body>
+</html>
