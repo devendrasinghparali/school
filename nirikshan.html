@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#14213d" />
+  <title>निरीक्षण / अवलोकन | शासकीय एकीकृत माध्यमिक विद्यालय हरिपुरा</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script defer src="firebase-config.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    :root {
+      --ink: #14213d; --ink-soft: #3d4a63; --muted: #6b7690;
+      --teal: #0f766e; --teal-dark: #0b5a54; --saffron: #e8890c;
+      --green: #16794a; --red: #b42318;
+      --bg: #eef1f6; --card: #ffffff; --line: #dde3ee; --tint: #f5f7fb; --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: "Mukta", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--ink); min-height: 100vh; line-height: 1.5; font-size: 16px;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    :focus-visible { outline: 3px solid var(--saffron); outline-offset: 2px; }
+    .hidden { display: none !important; }
+
+    /* Header */
+    .topbar { background: var(--ink); color: #fff; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 0; border-bottom: 4px solid var(--saffron); }
+    .topbar-inner { max-width: 960px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; }
+    .brand-mark { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--saffron); color: var(--ink); display: grid; place-items: center; font-weight: 800; font-size: 1.15rem; }
+    .school-tag { display: block; font-size: 0.8rem; font-weight: 600; color: #b9c4dc; }
+    .topbar h1 { font-size: 1.3rem; font-weight: 700; line-height: 1.25; }
+    .header-actions { display: flex; gap: 8px; align-items: center; overflow-x: auto; padding: 2px 0 14px; scrollbar-width: none; }
+    .header-actions::-webkit-scrollbar { display: none; }
+    .header-actions .btn { flex: none; background: rgba(255, 255, 255, 0.14); color: #fff; }
+    .header-actions .btn-logout { background: transparent; color: #ffb4ad; border: 1.5px solid rgba(255, 180, 173, 0.5); }
+
+    .container { max-width: 960px; margin: 16px auto 32px; padding: 0 12px; display: flex; flex-direction: column; gap: 14px; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 14px; border: 1px solid var(--line); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center; text-decoration: none;
+      border: none; border-radius: 10px; padding: 10px 14px; min-height: 44px; font: inherit; font-size: 0.98rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: background 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-sm { min-height: 40px; padding: 7px 14px; font-size: 0.92rem; border-radius: 999px; }
+    .btn-primary { background: var(--teal); color: #fff; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-light { background: #e9edf5; color: var(--ink); }
+    .btn-danger-soft { background: #fde4e1; color: #9a1c12; }
+
+    /* Toolbar */
+    .toolbar { position: sticky; top: 0; z-index: 20; padding: 8px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 14px rgba(20, 33, 61, 0.08); }
+    .tool-row { display: flex; gap: 6px; align-items: center; overflow-x: auto; scrollbar-width: none; padding: 1px; }
+    .tool-row::-webkit-scrollbar { display: none; }
+    .tool-row > * { flex: none; }
+    .tb { min-width: 42px; min-height: 42px; padding: 6px 10px; border-radius: 9px; background: #e9edf5; color: var(--ink); border: none; font: inherit; font-size: 1rem; font-weight: 700; cursor: pointer; }
+    .tb:active { background: #cfd8ea; }
+    .tb.wide { padding: 6px 12px; font-size: 0.9rem; white-space: nowrap; }
+    .tb.warn { background: #fde4e1; color: #9a1c12; }
+    .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
+    .mini-lbl { font-size: 0.82rem; color: var(--muted); font-weight: 600; white-space: nowrap; }
+    .num { width: 54px; min-height: 42px; text-align: center; border: 1.5px solid #c8d1e2; border-radius: 9px; font: inherit; font-size: 1rem; }
+
+    /* Paper (on-screen) */
+    .paper {
+      background: #fff; width: 100%; max-width: 794px; margin: 0 auto; border: 1px solid #cfd6e4; border-radius: 6px;
+      box-shadow: 0 6px 24px rgba(20, 33, 61, 0.1); padding: 22px 16px 28px; color: #000;
+    }
+    @media (min-width: 700px) { .paper { padding: 40px 48px 48px; } }
+    .paper input, .paper textarea {
+      width: 100%; border: none; border-bottom: 1.5px dashed #b8c2d6; border-radius: 0; background: transparent;
+      font: inherit; color: #000; padding: 4px 2px; text-align: center; outline: none; min-height: 0;
+    }
+    .paper input:focus, .paper textarea:focus { border-bottom: 1.5px solid var(--teal); background: #f1faf9; }
+    .lh-name { font-size: 1.45rem; font-weight: 800; line-height: 1.3; resize: none; overflow: hidden; display: block; }
+    @media (min-width: 700px) { .lh-name { font-size: 1.9rem; } }
+    .lh-line { display: flex; align-items: baseline; justify-content: center; gap: 6px; margin-top: 6px; font-size: 1.02rem; }
+    .lh-line b { font-weight: 700; white-space: nowrap; }
+    .lh-line input { max-width: 330px; font-weight: 600; }
+    .rule { border-top: 2.5px double #000; margin: 12px 0 14px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 10px 24px; justify-content: space-between; }
+    .meta label { display: flex; align-items: baseline; gap: 6px; flex: 1 1 230px; font-weight: 700; margin: 0; }
+    .meta label span { white-space: nowrap; }
+    .meta input { text-align: left; border: 1.5px solid #b8c2d6; border-radius: 8px; padding: 8px 10px; font-weight: 600; background: #fff; }
+    .meta input:focus { border-color: var(--teal); }
+    .body-label { margin: 18px 0 6px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+
+    /* Letter body (editor + print) */
+    .letter-body { font-size: 16px; line-height: 1.75; word-break: break-word; }
+    .letter-body p { margin: 0 0 0.55em; min-height: 1.2em; }
+    .letter-body table { border-collapse: collapse; width: 100%; table-layout: fixed; margin: 8px 0 12px; }
+    .letter-body td, .letter-body th { border: 1px solid #000; padding: 6px 8px; height: 32px; vertical-align: top; word-break: break-word; line-height: 1.45; }
+    .letter-body font[size="1"] { font-size: 11px; }
+    .letter-body font[size="2"] { font-size: 13px; }
+    .letter-body font[size="3"] { font-size: 16px; }
+    .letter-body font[size="4"] { font-size: 19px; }
+    .letter-body font[size="5"] { font-size: 23px; }
+    .letter-body font[size="6"] { font-size: 28px; }
+    .letter-body font[size="7"] { font-size: 34px; }
+    #editor { min-height: 380px; border: 1.5px dashed #b8c2d6; border-radius: 8px; padding: 12px; outline: none; background: #fff; }
+    #editor:focus { border-color: var(--teal); background: #fcfffe; }
+    #editor:empty::before { content: attr(data-placeholder); color: #98a3ba; }
+
+    .opts { display: flex; flex-direction: column; gap: 10px; }
+    .check { display: flex; align-items: center; gap: 10px; font-weight: 600; margin: 0; }
+    .check input { width: 22px; height: 22px; accent-color: var(--teal); flex: none; }
+    .action-row { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    @media (min-width: 600px) { .action-row { grid-template-columns: 1fr 1fr; } }
+    .msg { font-size: 0.95rem; font-weight: 600; border-radius: 10px; padding: 9px 12px; background: var(--tint); color: var(--ink-soft); }
+    .msg:empty { display: none; }
+    .msg.ok { background: #dcf5e7; color: #0f5f38; }
+    .msg.err { background: #fde4e1; color: #9a1c12; }
+
+    /* A4 print/PDF copy */
+    #print-root { position: absolute; left: -10000px; top: 0; width: 794px; background: #fff; color: #000; }
+    .a4 { width: 794px; min-height: 1123px; padding: 52px 58px 56px; background: #fff; color: #000; font-family: "Mukta", "Noto Sans Devanagari", sans-serif; }
+    .a4-name { text-align: center; font-size: 30px; font-weight: 800; line-height: 1.3; }
+    .a4-line { text-align: center; font-size: 15px; font-weight: 600; margin-top: 5px; }
+    .a4-rule { border-top: 3px double #000; margin: 12px 0 16px; }
+    .a4-meta { display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; margin-bottom: 18px; }
+    .a4 .letter-body { font-size: 16px; }
+
+
+    /* ---------- सेव / रजिस्टर ---------- */
+    .banner { background: #fdf0dc; color: #8a4b00; border: 1px solid #f3d9a8; border-radius: 10px; padding: 9px 12px; font-weight: 700; font-size: 0.95rem; }
+    .reg-head { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+    .reg-head h2 { font-size: 1.15rem; }
+    .reg-head .hint { font-size: 0.92rem; color: var(--muted); }
+    .filters { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    @media (min-width: 600px) { .filters { grid-template-columns: 1fr 200px; } }
+    .filters input { width: 100%; min-height: 44px; padding: 9px 12px; border: 1.5px solid #c8d1e2; border-radius: 10px; font: inherit; font-size: 1rem; background: #fff; color: var(--ink); }
+    .filters input:focus { border-color: var(--teal); outline: 3px solid rgba(15, 118, 110, 0.2); outline-offset: 0; }
+    .count-chip { display: inline-block; background: #e6eefb; color: #1e3f7a; border-radius: 999px; padding: 2px 12px; font-size: 0.88rem; font-weight: 700; }
+
+    .table-responsive { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; background: #fff; }
+    .data-table th, .data-table td { padding: 11px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+    .data-table th { background: var(--ink); color: #fff; font-weight: 700; font-size: 0.88rem; white-space: nowrap; }
+    .data-table tbody tr:nth-child(even) { background: var(--tint); }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .cell-no { font-weight: 800; white-space: nowrap; }
+    .cell-actions { white-space: nowrap; }
+    .cell-actions .btn { margin-right: 6px; }
+    .empty-cell { text-align: center !important; color: var(--muted); padding: 28px 12px !important; }
+    @media (max-width: 700px) {
+      .table-responsive { border: none; overflow: visible; }
+      .data-table, .data-table tbody { display: block; background: transparent; }
+      .data-table thead { display: none; }
+      .data-table tbody tr { display: block; background: #fff !important; border: 1px solid var(--line); border-radius: 12px; padding: 4px 14px 10px; margin-bottom: 10px; }
+      .data-table td { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; padding: 8px 0; border-bottom: 1px dashed var(--line); text-align: right; }
+      .data-table td:last-child { border-bottom: none; padding-bottom: 0; justify-content: stretch; }
+      .data-table td::before { content: attr(data-label); color: var(--muted); font-size: 0.85rem; font-weight: 600; text-align: left; flex: none; }
+      .data-table td.cell-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .data-table td.cell-actions::before { content: none; }
+      .cell-actions .btn { margin: 0; width: 100%; padding: 7px 4px; }
+      .data-table tr.empty-row td { display: block; text-align: center; }
+      .data-table tr.empty-row td::before { content: none; }
+    }
+
+    /* देखने की विंडो */
+    .modal { position: fixed; inset: 0; background: rgba(13, 22, 38, 0.7); display: flex; justify-content: center; align-items: flex-end; z-index: 999; }
+    .modal-card { background: #eef1f6; width: 100%; max-width: 860px; max-height: 94vh; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 14px 12px calc(14px + env(safe-area-inset-bottom, 0px)); }
+    @media (min-width: 700px) { .modal { align-items: center; padding: 16px; } .modal-card { border-radius: 18px; padding: 18px; } }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .modal-head h3 { font-size: 1.15rem; }
+    .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    @media (min-width: 600px) { .modal-actions { grid-template-columns: repeat(3, 1fr); } }
+    .view-sheet { background: #fff; color: #000; border: 1px solid #cfd6e4; border-radius: 6px; padding: 20px 16px 24px; font-family: "Mukta", "Noto Sans Devanagari", sans-serif; }
+    @media (min-width: 700px) { .view-sheet { padding: 36px 44px 40px; } }
+    .view-sheet .a4-name { font-size: 1.4rem; }
+    @media (min-width: 700px) { .view-sheet .a4-name { font-size: 1.8rem; } }
+    .view-sheet .a4-line { font-size: 0.98rem; }
+    .view-sheet .a4-meta { font-size: 1rem; flex-wrap: wrap; gap: 6px 20px; }
+
+    .date-row { display: flex; justify-content: flex-end; }
+    .date-row label { display: flex; align-items: baseline; gap: 6px; font-weight: 700; margin: 0; }
+    .date-row input { width: auto; min-width: 170px; text-align: left; border: 1.5px solid #b8c2d6; border-radius: 8px; padding: 8px 10px; font-weight: 600; background: #fff; }
+    .sign-block { display: flex; justify-content: flex-end; margin-top: 30px; }
+    .sign-box { width: 100%; max-width: 300px; display: flex; flex-direction: column; gap: 8px; }
+    .sign-box .cap { text-align: center; font-weight: 700; font-size: 0.92rem; }
+    .sign-space { height: 74px; border-bottom: 1.5px solid #000; display: grid; place-items: end center; font-size: 0.85rem; color: #98a3ba; padding-bottom: 4px; }
+    .sign-box label { display: flex; align-items: baseline; gap: 6px; font-weight: 700; margin: 0; }
+    .sign-box label span { white-space: nowrap; }
+    .sign-box input { text-align: left; font-weight: 600; }
+
+    .a4 { display: flex; flex-direction: column; }
+    .a4-date { text-align: right; font-size: 16px; font-weight: 700; margin-bottom: 18px; }
+    .a4-spacer { flex: 1; min-height: 30px; }
+    .a4-sign { display: flex; justify-content: flex-end; }
+    .a4-sign > div { width: 270px; text-align: center; }
+    .a4-sign .line { border-top: 1.5px solid #000; margin-top: 62px; padding-top: 4px; font-weight: 700; }
+    .a4-sign .nm { font-weight: 700; margin-top: 2px; }
+    .a4-sign .ds { font-weight: 600; }
+    .view-sheet .a4-spacer { min-height: 20px; }
+    .view-sheet .a4-date { font-size: 1rem; }
+    .view-sheet .a4-sign > div { width: 230px; }
+
+    @page { size: A4; margin: 0; }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .topbar, .container, .modal { display: none !important; }
+      #print-root { position: static !important; left: auto !important; width: 210mm !important; }
+      .a4 { width: 210mm; min-height: 296mm; padding: 16mm 16mm 18mm; }
+      .letter-body tr { break-inside: avoid; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">नि</div>
+        <div>
+          <span class="school-tag">शासकीय एकीकृत माध्यमिक विद्यालय हरिपुरा</span>
+          <h1>निरीक्षण / अवलोकन (A4)</h1>
+        </div>
+      </div>
+      <nav class="header-actions" aria-label="मुख्य मेनू">
+        <a href="home.html" class="btn btn-sm">होम</a>
+        <a href="attendance.html" class="btn btn-sm">उपस्थिति</a>
+        <a href="mdm.html" class="btn btn-sm">MDM</a>
+        <a href="jawak.html" class="btn btn-sm">जावक</a>
+        <button type="button" id="logout-btn" class="btn btn-logout btn-sm">लॉगआउट</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- टूलबार -->
+    <section class="card toolbar" aria-label="एडिट टूल">
+      <div class="tool-row" id="text-tools">
+        <button type="button" class="tb" data-cmd="bold" title="बोल्ड"><b>B</b></button>
+        <button type="button" class="tb" data-cmd="italic" title="तिरछा"><i>I</i></button>
+        <button type="button" class="tb" data-cmd="underline" title="रेखांकित"><u>U</u></button>
+        <span class="sep"></span>
+        <button type="button" class="tb" data-size="-1" title="अक्षर छोटे">A−</button>
+        <button type="button" class="tb" data-size="1" title="अक्षर बड़े">A+</button>
+        <span class="sep"></span>
+        <button type="button" class="tb" data-cmd="justifyLeft" title="बाएँ">⇤</button>
+        <button type="button" class="tb" data-cmd="justifyCenter" title="बीच में">↔</button>
+        <button type="button" class="tb" data-cmd="justifyRight" title="दाएँ">⇥</button>
+        <span class="sep"></span>
+        <button type="button" class="tb wide warn" id="clear-body-btn">बॉक्स खाली करें</button>
+      </div>
+      <div class="tool-row" id="table-tools">
+        <span class="mini-lbl">टेबल:</span>
+        <input type="number" id="t-rows" class="num" value="3" min="1" max="30" aria-label="पंक्तियाँ" />
+        <span class="mini-lbl">×</span>
+        <input type="number" id="t-cols" class="num" value="3" min="1" max="8" aria-label="कॉलम" />
+        <button type="button" class="tb wide" id="t-insert">टेबल जोड़ें</button>
+        <span class="sep"></span>
+        <button type="button" class="tb wide" id="t-addrow">+ पंक्ति</button>
+        <button type="button" class="tb wide" id="t-delrow">− पंक्ति</button>
+        <button type="button" class="tb wide" id="t-addcol">+ कॉलम</button>
+        <button type="button" class="tb wide" id="t-delcol">− कॉलम</button>
+        <button type="button" class="tb wide warn" id="t-deltable">टेबल हटाएँ</button>
+      </div>
+    </section>
+
+    <!-- पत्र (A4) -->
+    <section class="paper" aria-label="निरीक्षण / अवलोकन">
+      <div class="date-row">
+        <label><span>दिनांक :</span><input type="date" id="f-date" /></label>
+      </div>
+
+      <p class="body-label">निरीक्षण / अवलोकन का विवरण</p>
+      <div id="editor" class="letter-body" contenteditable="true" data-placeholder="यहाँ निरीक्षण या अवलोकन का विवरण लिखें..." spellcheck="false"></div>
+
+      <div class="sign-block">
+        <div class="sign-box">
+          <div class="cap">निरीक्षण / अवलोकन कर्ता अधिकारी</div>
+          <div class="sign-space">हस्ताक्षर</div>
+          <label><span>नाम :</span><input type="text" id="f-officer" placeholder="अधिकारी का नाम" /></label>
+          <label><span>पदनाम :</span><input type="text" id="f-desig" placeholder="पदनाम" /></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- सेव / डाउनलोड / प्रिंट -->
+    <section class="card opts">
+      <div id="edit-banner" class="banner hidden"></div>
+      <div class="action-row">
+        <button type="button" id="save-btn" class="btn btn-primary">सेव करें</button>
+        <button type="button" id="pdf-btn" class="btn btn-success">PDF डाउनलोड (A4)</button>
+        <button type="button" id="print-btn" class="btn btn-light">प्रिंट करें</button>
+        <button type="button" id="new-btn" class="btn btn-light">नया निरीक्षण</button>
+      </div>
+      <p id="msg" class="msg" role="status"></p>
+    </section>
+
+    <!-- भेजी जा चुकी जावक -->
+    <section class="card" id="register">
+      <div class="reg-head">
+        <div>
+          <h2>सेव किए गए निरीक्षण / अवलोकन <span id="reg-count" class="count-chip">0</span></h2>
+          <p class="hint">सेव किए गए सभी निरीक्षण / अवलोकन यहाँ दिखते हैं। देखने, बदलने या हटाने के लिए बटन दबाएँ।</p>
+        </div>
+        <div class="filters">
+          <input type="search" id="reg-search" placeholder="अधिकारी, पदनाम या विवरण से खोजें" aria-label="खोजें" />
+          <input type="month" id="reg-month" aria-label="महीना चुनें" />
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr><th>दिनांक</th><th>अधिकारी</th><th>विवरण</th><th></th></tr>
+          </thead>
+          <tbody id="reg-tbody">
+            <tr class="empty-row"><td colspan="4" class="empty-cell">डेटा लोड हो रहा है...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- जावक देखें -->
+    <div id="view-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="निरीक्षण / अवलोकन देखें">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h3>निरीक्षण / अवलोकन देखें</h3>
+          <button type="button" id="v-close" class="btn btn-light btn-sm">बंद करें</button>
+        </div>
+        <div id="v-body"></div>
+        <div class="modal-actions">
+          <button type="button" id="v-pdf" class="btn btn-success">PDF डाउनलोड</button>
+          <button type="button" id="v-print" class="btn btn-light">प्रिंट करें</button>
+          <button type="button" id="v-edit" class="btn btn-primary">बदलाव करें</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="print-root" aria-hidden="true"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const KEY = "nirikshan-draft-v1";
+
+    const todayISO = () => {
+      const n = new Date();
+      return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+    };
+    const fmtDate = (iso) => (iso ? iso.split("-").reverse().join("/") : "");
+
+    function say(text, type) {
+      const el = $("msg");
+      el.textContent = text || "";
+      el.className = "msg" + (type ? " " + type : "");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      init();
+      if (typeof auth !== "undefined") {
+        $("logout-btn").addEventListener("click", async () => {
+          await auth.signOut();
+          window.location.href = "index.html";
+        });
+        auth.onAuthStateChanged((user) => { if (!user) window.location.href = "index.html"; });
+      } else {
+        $("logout-btn").classList.add("hidden");
+      }
+    });
+
+    function init() {
+      const editor = $("editor");
+      let savedRange = null;
+
+      try { document.execCommand("defaultParagraphSeparator", false, "p"); } catch (e) {}
+      try { document.execCommand("styleWithCSS", false, false); } catch (e) {}
+
+      // ---- ड्राफ्ट ----
+      let draft = {};
+      try { draft = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+      $("f-date").value = todayISO();
+      $("f-officer").value = draft.officer || "";
+      $("f-desig").value = draft.desig || "";
+      editor.innerHTML = draft.body || "";
+
+      let t = null;
+      function persist() {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          try {
+            localStorage.setItem(KEY, JSON.stringify({
+              officer: $("f-officer").value, desig: $("f-desig").value, body: editor.innerHTML
+            }));
+          } catch (e) {}
+        }, 300);
+      }
+      ["f-officer", "f-desig"].forEach((id) => $(id).addEventListener("input", persist));
+      editor.addEventListener("input", persist);
+
+      // सादा टेक्स्ट पेस्ट
+      editor.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData("text/plain");
+        document.execCommand("insertText", false, text);
+      });
+
+      // ---- चयन (selection) याद रखना ----
+      document.addEventListener("selectionchange", () => {
+        const s = window.getSelection();
+        if (s.rangeCount) {
+          const r = s.getRangeAt(0);
+          if (editor.contains(r.commonAncestorContainer)) savedRange = r.cloneRange();
+        }
+      });
+      function restore() {
+        editor.focus({ preventScroll: true });
+        if (savedRange) {
+          const s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(savedRange);
+        }
+      }
+      // टूलबार दबाने पर चयन न हटे
+      document.querySelector(".toolbar").addEventListener("mousedown", (e) => {
+        if (e.target.closest("button")) e.preventDefault();
+      });
+
+      function cmd(name, val) {
+        restore();
+        document.execCommand(name, false, val || null);
+        persist();
+      }
+
+      $("text-tools").addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        if (b.dataset.cmd) cmd(b.dataset.cmd);
+        else if (b.dataset.size) {
+          restore();
+          let cur = parseInt(document.queryCommandValue("fontSize"), 10);
+          if (isNaN(cur)) cur = 3;
+          cur = Math.min(7, Math.max(1, cur + Number(b.dataset.size)));
+          document.execCommand("fontSize", false, String(cur));
+          persist();
+        }
+      });
+
+      $("clear-body-btn").addEventListener("click", () => {
+        if (!editor.innerHTML.trim()) return;
+        if (confirm("बॉक्स की पूरी सामग्री हटानी है?")) {
+          editor.innerHTML = "";
+          savedRange = null;
+          persist();
+          say("बॉक्स खाली कर दिया गया।", "ok");
+        }
+      });
+
+      // ---- टेबल ----
+      function currentCell() {
+        if (!savedRange) return null;
+        let n = savedRange.startContainer;
+        if (n.nodeType !== 1) n = n.parentElement;
+        const cell = n && n.closest ? n.closest("td,th") : null;
+        return cell && editor.contains(cell) ? cell : null;
+      }
+      function needCell() {
+        const c = currentCell();
+        if (!c) say("पहले टेबल के किसी खाने में क्लिक करें।", "err");
+        else say("");
+        return c;
+      }
+
+      $("t-insert").addEventListener("click", () => {
+        const r = Math.min(30, Math.max(1, parseInt($("t-rows").value, 10) || 3));
+        const c = Math.min(8, Math.max(1, parseInt($("t-cols").value, 10) || 3));
+        let html = "<table><tbody>";
+        for (let i = 0; i < r; i++) {
+          html += "<tr>" + "<td><br></td>".repeat(c) + "</tr>";
+        }
+        html += "</tbody></table><p><br></p>";
+        restore();
+        document.execCommand("insertHTML", false, html);
+        say(`${r} पंक्ति × ${c} कॉलम की टेबल जुड़ गई।`, "ok");
+        persist();
+      });
+
+      $("t-addrow").addEventListener("click", () => {
+        const cell = needCell(); if (!cell) return;
+        const tr = cell.parentElement;
+        const nr = document.createElement("tr");
+        for (let i = 0; i < tr.cells.length; i++) nr.innerHTML += "<td><br></td>";
+        tr.after(nr);
+        persist();
+      });
+      $("t-delrow").addEventListener("click", () => {
+        const cell = needCell(); if (!cell) return;
+        const tr = cell.parentElement, table = tr.closest("table");
+        tr.remove();
+        if (!table.rows.length) table.remove();
+        savedRange = null;
+        persist();
+      });
+      $("t-addcol").addEventListener("click", () => {
+        const cell = needCell(); if (!cell) return;
+        const idx = cell.cellIndex, table = cell.closest("table");
+        if (table.rows[0] && table.rows[0].cells.length >= 8) { say("एक टेबल में अधिकतम 8 कॉलम रखें।", "err"); return; }
+        [...table.rows].forEach((row) => {
+          const td = document.createElement("td");
+          td.innerHTML = "<br>";
+          if (row.cells[idx]) row.cells[idx].after(td); else row.appendChild(td);
+        });
+        persist();
+      });
+      $("t-delcol").addEventListener("click", () => {
+        const cell = needCell(); if (!cell) return;
+        const idx = cell.cellIndex, table = cell.closest("table");
+        [...table.rows].forEach((row) => { if (row.cells[idx]) row.cells[idx].remove(); });
+        if (![...table.rows].some((r) => r.cells.length)) table.remove();
+        savedRange = null;
+        persist();
+      });
+      $("t-deltable").addEventListener("click", () => {
+        const cell = needCell(); if (!cell) return;
+        if (confirm("पूरी टेबल हटानी है?")) { cell.closest("table").remove(); savedRange = null; persist(); }
+      });
+
+      // ---- सुरक्षित HTML ----
+      function clean(html) {
+        const t = document.createElement("template");
+        t.innerHTML = html || "";
+        t.content.querySelectorAll("script,style,iframe,object,embed,link,meta,form").forEach((n) => n.remove());
+        t.content.querySelectorAll("*").forEach((n) => {
+          [...n.attributes].forEach((a) => {
+            const v = a.value.trim().toLowerCase();
+            if (a.name.startsWith("on") || v.startsWith("javascript:")) n.removeAttribute(a.name);
+          });
+        });
+        return t.innerHTML;
+      }
+      const plain = (html) => {
+        const t = document.createElement("template");
+        t.innerHTML = html || "";
+        return (t.content.textContent || "").replace(/\s+/g, " ").trim();
+      };
+
+      // ---- फॉर्म का डेटा ----
+      function formData() {
+        return {
+          date: $("f-date").value,
+          officer: $("f-officer").value.trim(),
+          desig: $("f-desig").value.trim(),
+          body: editor.innerHTML.trim()
+        };
+      }
+      function hasContent() {
+        return editor.textContent.trim() !== "" || !!editor.querySelector("table");
+      }
+      function letterInner(d) {
+        return `
+          <div class="a4-date">दिनांक : ${esc(fmtDate(d.date))}</div>
+          <div class="letter-body">${clean(d.body)}</div>
+          <div class="a4-spacer"></div>
+          <div class="a4-sign"><div>
+            <div class="line">हस्ताक्षर</div>
+            <div class="nm">${esc(d.officer)}</div>
+            <div class="ds">${esc(d.desig)}</div>
+          </div></div>`;
+      }
+
+      // ---- प्रिंट व PDF ----
+      function doPrint(d) {
+        $("print-root").innerHTML = `<div class="a4">${letterInner(d)}</div>`;
+        window.print();
+      }
+      async function doPdf(d, btn) {
+        if (!window.html2canvas || !window.jspdf) {
+          say("PDF टूल लोड नहीं हुआ। इंटरनेट जाँचकर पेज रीफ्रेश करें, या 'प्रिंट करें' से PDF सेव करें।", "err");
+          return;
+        }
+        $("print-root").innerHTML = `<div class="a4">${letterInner(d)}</div>`;
+        const label = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "PDF बन रही है...";
+        try {
+          if (document.fonts && document.fonts.ready) await document.fonts.ready;
+          const canvas = await html2canvas($("print-root"), {
+            scale: 2, backgroundColor: "#ffffff", useCORS: true, width: 794, windowWidth: 794,
+            onclone: (doc) => {
+              const el = doc.getElementById("print-root");
+              el.style.position = "static";
+              el.style.left = "0";
+            }
+          });
+          const pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+          const pageW = 210, pageH = 297;
+          const ratio = canvas.width / pageW;
+          const pagePx = Math.floor(pageH * ratio);
+          const pages = Math.max(1, Math.ceil((canvas.height - 4) / pagePx));
+          for (let i = 0; i < pages; i++) {
+            const c = document.createElement("canvas");
+            c.width = canvas.width;
+            c.height = Math.min(pagePx, canvas.height - i * pagePx);
+            const ctx = c.getContext("2d");
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.drawImage(canvas, 0, i * pagePx, canvas.width, c.height, 0, 0, c.width, c.height);
+            if (i > 0) pdf.addPage();
+            pdf.addImage(c.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, pageW, Math.min(pageH, c.height / ratio));
+          }
+          pdf.save(`Nirikshan-${d.date || ""}.pdf`);
+          say("PDF डाउनलोड हो गई।", "ok");
+        } catch (err) {
+          console.error(err);
+          say("PDF नहीं बन सकी। 'प्रिंट करें' दबाकर 'PDF के रूप में सेव करें' चुनें।", "err");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = label;
+        }
+      }
+      function needBody() {
+        if (!hasContent()) { say("पहले जावक का विवरण लिखें।", "err"); return false; }
+        say("");
+        return true;
+      }
+      $("print-btn").addEventListener("click", () => { if (needBody()) doPrint(formData()); });
+      $("pdf-btn").addEventListener("click", () => { if (needBody()) doPdf(formData(), $("pdf-btn")); });
+
+      // ---- Firebase: सेव व रजिस्टर ----
+      let records = [];
+      let currentId = null;
+      let viewing = null;
+      const haveDb = () => typeof db !== "undefined";
+      function errText(err) {
+        if (err && err.code === "permission-denied") return "Firebase में 'nirikshan' कलेक्शन की अनुमति (Rules) नहीं है। Firestore Rules में nirikshan जोड़ें।";
+        return "कुछ गड़बड़ हुई, इंटरनेट जाँचकर दोबारा कोशिश करें।";
+      }
+
+      function setEditUI() {
+        const b = $("edit-banner");
+        if (currentId) {
+          const r = records.find((x) => x.id === currentId);
+          b.textContent = `बदलाव मोड : ${r ? fmtDate(r.date) : ""} का निरीक्षण / अवलोकन (सेव करने पर यही अपडेट होगा)`;
+          b.classList.remove("hidden");
+          $("save-btn").textContent = "बदलाव सेव करें";
+        } else {
+          b.classList.add("hidden");
+          $("save-btn").textContent = "सेव करें";
+        }
+      }
+
+      async function loadRecords() {
+        const tb = $("reg-tbody");
+        if (!haveDb()) {
+          tb.innerHTML = `<tr class="empty-row"><td colspan="4" class="empty-cell">Firebase से कनेक्शन नहीं है।</td></tr>`;
+          return;
+        }
+        try {
+          const snap = await db.collection("nirikshan").orderBy("date", "desc").limit(500).get();
+          records = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+          renderRegister();
+          setEditUI();
+        } catch (err) {
+          console.error(err);
+          tb.innerHTML = `<tr class="empty-row"><td colspan="4" class="empty-cell">${esc(errText(err))}</td></tr>`;
+        }
+      }
+
+      function renderRegister() {
+        const q = $("reg-search").value.trim().toLowerCase();
+        const m = $("reg-month").value;
+        const list = records.filter((r) => {
+          if (m && !(r.date || "").startsWith(m)) return false;
+          if (!q) return true;
+          return `${r.officer || ""} ${r.desig || ""} ${plain(r.body)}`.toLowerCase().includes(q);
+        });
+        $("reg-count").textContent = (q || m) ? `${list.length} / ${records.length}` : String(records.length);
+        const tb = $("reg-tbody");
+        if (!list.length) {
+          tb.innerHTML = `<tr class="empty-row"><td colspan="4" class="empty-cell">${records.length ? "कुछ नहीं मिला।" : "अभी कुछ सेव नहीं हुआ है।"}</td></tr>`;
+          return;
+        }
+        tb.innerHTML = list.map((r) => {
+          const txt = plain(r.body);
+          const snip = txt.length > 90 ? txt.slice(0, 90) + "…" : (txt || "(तालिका)");
+          return `
+          <tr>
+            <td data-label="दिनांक" class="cell-no">${esc(fmtDate(r.date))}</td>
+            <td data-label="अधिकारी">${esc(r.officer)}${r.desig ? " (" + esc(r.desig) + ")" : ""}</td>
+            <td data-label="विवरण">${esc(snip)}</td>
+            <td class="cell-actions">
+              <button type="button" class="btn btn-primary btn-sm" data-act="view" data-id="${esc(r.id)}">देखें</button>
+              <button type="button" class="btn btn-light btn-sm" data-act="edit" data-id="${esc(r.id)}">बदलें</button>
+              <button type="button" class="btn btn-danger-soft btn-sm" data-act="del" data-id="${esc(r.id)}">हटाएँ</button>
+            </td>
+          </tr>`;
+        }).join("");
+      }
+
+      function loadIntoForm(r) {
+        currentId = r.id;
+        $("f-date").value = r.date || todayISO();
+        $("f-officer").value = r.officer || "";
+        $("f-desig").value = r.desig || "";
+        editor.innerHTML = clean(r.body);
+        savedRange = null;
+        persist();
+        setEditUI();
+        say("");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      $("save-btn").addEventListener("click", async () => {
+        if (!haveDb()) { say("Firebase से कनेक्शन नहीं है।", "err"); return; }
+        const d = formData();
+        if (!d.date) { say("दिनांक चुनें।", "err"); return; }
+        if (!hasContent()) { say("पहले निरीक्षण / अवलोकन का विवरण लिखें।", "err"); return; }
+        if (!d.officer) { say("अधिकारी का नाम लिखें।", "err"); $("f-officer").focus(); return; }
+
+        const btn = $("save-btn");
+        btn.disabled = true;
+        try {
+          const ts = firebase.firestore.FieldValue.serverTimestamp();
+          const payload = { ...d, updatedAt: ts };
+          if (currentId) {
+            await db.collection("nirikshan").doc(currentId).update(payload);
+          } else {
+            payload.createdAt = ts;
+            payload.createdBy = (typeof auth !== "undefined" && auth.currentUser && auth.currentUser.email) || "";
+            const ref = await db.collection("nirikshan").add(payload);
+            currentId = ref.id;
+          }
+          await loadRecords();
+          say(`${fmtDate(d.date)} का निरीक्षण / अवलोकन सेव हो गया।`, "ok");
+        } catch (err) {
+          console.error(err);
+          say(errText(err), "err");
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      $("reg-tbody").addEventListener("click", async (e) => {
+        const b = e.target.closest("button[data-act]");
+        if (!b) return;
+        const r = records.find((x) => x.id === b.dataset.id);
+        if (!r) return;
+        if (b.dataset.act === "view") openView(r);
+        else if (b.dataset.act === "edit") loadIntoForm(r);
+        else if (confirm(`${fmtDate(r.date)} का निरीक्षण / अवलोकन हटाना है?`)) {
+          try {
+            await db.collection("nirikshan").doc(r.id).delete();
+            if (currentId === r.id) { currentId = null; setEditUI(); }
+            await loadRecords();
+            say("हटा दिया गया।", "ok");
+          } catch (err) {
+            say(errText(err), "err");
+          }
+        }
+      });
+      $("reg-search").addEventListener("input", renderRegister);
+      $("reg-month").addEventListener("change", renderRegister);
+
+      // ---- देखने की विंडो ----
+      function openView(r) {
+        viewing = r;
+        $("v-body").innerHTML = `<div class="view-sheet">${letterInner(r)}</div>`;
+        $("view-modal").classList.remove("hidden");
+        document.body.style.overflow = "hidden";
+      }
+      function closeView() {
+        $("view-modal").classList.add("hidden");
+        document.body.style.overflow = "";
+      }
+      $("v-close").addEventListener("click", closeView);
+      $("view-modal").addEventListener("click", (e) => { if (e.target === $("view-modal")) closeView(); });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeView(); });
+      $("v-print").addEventListener("click", () => { if (viewing) doPrint(viewing); });
+      $("v-pdf").addEventListener("click", () => { if (viewing) doPdf(viewing, $("v-pdf")); });
+      $("v-edit").addEventListener("click", () => { if (viewing) { const r = viewing; closeView(); loadIntoForm(r); } });
+
+      // ---- नया निरीक्षण ----
+      $("new-btn").addEventListener("click", () => {
+        if (!confirm("नया निरीक्षण / अवलोकन शुरू करें? विवरण और अधिकारी की जानकारी साफ़ हो जाएगी (सेव किया हुआ सुरक्षित रहेगा)।")) return;
+        currentId = null;
+        $("f-date").value = todayISO();
+        $("f-officer").value = "";
+        $("f-desig").value = "";
+        editor.innerHTML = "";
+        savedRange = null;
+        persist();
+        setEditUI();
+        say("नया निरीक्षण / अवलोकन तैयार है।", "ok");
+      });
+
+      loadRecords();
+    }
+  </script>
+</body>
+</html>
