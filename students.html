@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#14213d" />
+  <title>GMS HARIPURA 1 TO 8 | विद्यार्थी प्रोफ़ाइल व रिपोर्ट</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script defer src="firebase-config.js"></script>
+
+  <style>
+    :root {
+      --ink: #14213d; --ink-soft: #3d4a63; --muted: #6b7690;
+      --teal: #0f766e; --teal-dark: #0b5a54; --saffron: #e8890c;
+      --green: #16794a; --red: #b42318;
+      --bg: #eef1f6; --card: #fff; --line: #dde3ee; --tint: #f5f7fb; --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: "Mukta", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--ink); min-height: 100vh; line-height: 1.5; font-size: 16px;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .hidden { display: none !important; }
+    :focus-visible { outline: 3px solid var(--saffron); outline-offset: 2px; }
+
+    .topbar { background: var(--ink); color: #fff; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 0; border-bottom: 4px solid var(--saffron); }
+    .topbar-inner { max-width: 1100px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; }
+    .brand-mark { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--saffron); color: var(--ink); display: grid; place-items: center; font-weight: 800; font-size: 1.1rem; }
+    .school-tag { display: block; font-size: 0.8rem; font-weight: 600; color: #b9c4dc; }
+    .topbar h1 { font-size: 1.3rem; font-weight: 700; line-height: 1.25; }
+    .header-actions { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 14px; scrollbar-width: none; }
+    .header-actions::-webkit-scrollbar { display: none; }
+    .header-actions .btn { flex: none; background: rgba(255,255,255,.14); color: #fff; }
+    .header-actions .btn-logout { background: transparent; color: #ffb4ad; border: 1.5px solid rgba(255,180,173,.5); }
+
+    .container { max-width: 1100px; margin: 16px auto 32px; padding: 0 14px; display: flex; flex-direction: column; gap: 16px; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 16px; border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(20,33,61,.04); }
+    .card h2 { font-size: 1.15rem; }
+    .hint { font-size: 0.92rem; color: var(--muted); margin-top: 2px; }
+
+    label { display: block; font-weight: 600; font-size: 0.92rem; margin-bottom: 5px; color: var(--ink-soft); }
+    input, select {
+      width: 100%; min-height: 46px; padding: 10px 12px; border: 1.5px solid #c8d1e2; border-radius: 10px;
+      font: inherit; font-size: 1rem; background: #fff; color: var(--ink);
+    }
+    input:focus, select:focus { border-color: var(--teal); outline: 3px solid rgba(15,118,110,.2); outline-offset: 0; }
+    .form-group { margin-bottom: 12px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; border: none;
+      border-radius: 10px; padding: 10px 14px; min-height: 46px; font: inherit; font-size: 1rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: background .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.98); }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-sm { min-height: 40px; padding: 7px 14px; font-size: .92rem; border-radius: 999px; }
+    .btn-primary { background: var(--teal); color: #fff; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-light { background: #e9edf5; color: var(--ink); }
+    .full { width: 100%; }
+
+    .msg { margin-top: 12px; border-radius: 10px; padding: 9px 12px; font-size: .95rem; font-weight: 600; background: var(--tint); color: var(--ink-soft); }
+    .msg:empty { display: none; }
+    .msg.ok { background: #dcf5e7; color: #0f5f38; }
+    .msg.err { background: #fde4e1; color: #9a1c12; }
+
+    /* रिपोर्ट */
+    .rep-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+    .rep-grid .btn { grid-column: 1 / -1; }
+    @media (min-width: 821px) { .rep-grid { grid-template-columns: 200px 180px 200px auto; align-items: end; } .rep-grid .btn { grid-column: auto; } }
+
+    /* सूची */
+    .list-head { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+    @media (min-width: 700px) { .list-head { flex-direction: row; justify-content: space-between; align-items: center; } .list-head input { max-width: 300px; } }
+    .count-chip { display: inline-block; background: #e6eefb; color: #1e3f7a; border-radius: 999px; padding: 1px 12px; font-size: .88rem; font-weight: 700; vertical-align: middle; }
+    .class-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+    @media (min-width: 560px) { .class-chips { grid-template-columns: repeat(5, 1fr); } }
+    @media (min-width: 900px) { .class-chips { grid-template-columns: repeat(9, 1fr); } }
+    .cchip { border: 1.5px solid var(--line); background: var(--tint); border-radius: 12px; padding: 7px 4px; text-align: center; cursor: pointer; font: inherit; color: var(--ink); }
+    .cchip b { display: block; font-size: .8rem; color: var(--muted); font-weight: 600; }
+    .cchip span { font-size: 1.05rem; font-weight: 800; }
+    .cchip.active { border-color: var(--teal); background: #e3f4f2; }
+
+    .students { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    @media (min-width: 700px) { .students { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 1000px) { .students { grid-template-columns: repeat(3, 1fr); } }
+    .scard { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+    .scard .info { flex: 1; min-width: 0; }
+    .scard .nm { font-weight: 800; font-size: 1.05rem; line-height: 1.3; overflow-wrap: anywhere; }
+    .scard .sub { font-size: .88rem; color: var(--muted); font-weight: 600; overflow-wrap: anywhere; }
+    .empty { text-align: center; color: var(--muted); padding: 28px 10px; grid-column: 1 / -1; }
+
+    .avatar { width: 58px; height: 58px; border-radius: 50%; object-fit: cover; background: #e6eefb; color: #1e3f7a; display: inline-grid; place-items: center; font-weight: 800; font-size: 1.3rem; flex: none; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+    .avatar.lg { width: 96px; height: 96px; font-size: 2rem; }
+
+    /* विंडो */
+    .modal { position: fixed; inset: 0; background: rgba(13,22,38,.7); display: flex; justify-content: center; align-items: flex-end; z-index: 999; }
+    .modal-card { background: #fff; width: 100%; max-width: 560px; max-height: 94vh; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 16px 16px calc(18px + env(safe-area-inset-bottom, 0px)); }
+    @media (min-width: 700px) { .modal { align-items: center; padding: 16px; } .modal-card { border-radius: 18px; padding: 22px; } }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .modal-head h3 { font-size: 1.2rem; }
+    .photo-box { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+    .photo-btns { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .video-wrapper { position: relative; width: 100%; aspect-ratio: 4 / 3; background: #0d1626; border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
+    .video-wrapper video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    .sep { height: 1px; background: var(--line); margin: 14px 0; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">GMS</div>
+        <div>
+          <span class="school-tag">GMS HARIPURA 1 TO 8</span>
+          <h1>विद्यार्थी प्रोफ़ाइल व रिपोर्ट</h1>
+        </div>
+      </div>
+      <nav class="header-actions" aria-label="मुख्य मेनू">
+        <a href="home.html" class="btn btn-sm">होम</a>
+        <a href="attendance.html" class="btn btn-sm">उपस्थिति</a>
+        <button type="button" id="logout-btn" class="btn btn-logout btn-sm">लॉगआउट</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- रिपोर्ट डाउनलोड -->
+    <section class="card">
+      <h2>उपस्थिति रिपोर्ट डाउनलोड</h2>
+      <p class="hint">तारीख और कक्षा चुनकर Excel (CSV) फाइल डाउनलोड करें।</p>
+      <div class="rep-grid">
+        <div><label for="r-date">तारीख</label><input type="date" id="r-date" /></div>
+        <div>
+          <label for="r-class">कक्षा</label>
+          <select id="r-class">
+            <option value="all">सभी कक्षाएँ</option>
+            <option value="1">कक्षा 1</option><option value="2">कक्षा 2</option><option value="3">कक्षा 3</option><option value="4">कक्षा 4</option>
+            <option value="5">कक्षा 5</option><option value="6">कक्षा 6</option><option value="7">कक्षा 7</option><option value="8">कक्षा 8</option>
+          </select>
+        </div>
+        <div>
+          <label for="r-status">स्थिति</label>
+          <select id="r-status">
+            <option value="all">उपस्थित व अनुपस्थित</option>
+            <option value="Present">केवल उपस्थित</option>
+            <option value="Absent">केवल अनुपस्थित</option>
+          </select>
+        </div>
+        <button type="button" id="dl-btn" class="btn btn-success">Excel डाउनलोड</button>
+      </div>
+      <p id="rep-msg" class="msg" role="status"></p>
+    </section>
+
+    <!-- विद्यार्थी सूची -->
+    <section class="card">
+      <div class="list-head">
+        <h2>विद्यार्थी सूची <span id="count" class="count-chip">0</span></h2>
+        <input type="search" id="search" placeholder="नाम या पिता के नाम से खोजें" aria-label="खोजें" />
+      </div>
+      <div id="chips" class="class-chips"></div>
+      <div id="list" class="students"><div class="empty">डेटा लोड हो रहा है...</div></div>
+      <p id="list-msg" class="msg" role="status"></p>
+    </section>
+  </main>
+
+  <!-- जानकारी / फोटो बदलने की विंडो -->
+  <div id="edit-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="विद्यार्थी की जानकारी बदलें">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>विद्यार्थी की जानकारी</h3>
+        <button type="button" id="m-close" class="btn btn-light btn-sm">बंद करें ✕</button>
+      </div>
+
+      <div class="photo-box">
+        <div id="m-photo"></div>
+        <div class="photo-btns">
+          <button type="button" id="m-cam-btn" class="btn btn-light">📷 कैमरे से फोटो लें</button>
+          <button type="button" id="m-gal-btn" class="btn btn-light">🖼 गैलरी से फोटो चुनें</button>
+          <input type="file" id="m-file" accept="image/*" class="hidden" />
+        </div>
+      </div>
+
+      <div id="cam-box" class="hidden">
+        <div class="video-wrapper"><video id="m-video" autoplay muted playsinline></video></div>
+        <button type="button" id="m-snap-btn" class="btn btn-primary full" style="margin-bottom:10px">फोटो खींचें</button>
+      </div>
+      <p id="photo-msg" class="msg" role="status"></p>
+
+      <div class="sep"></div>
+
+      <form id="m-form" novalidate>
+        <div class="form-group"><label for="m-name">विद्यार्थी का नाम</label><input type="text" id="m-name" required /></div>
+        <div class="form-group"><label for="m-father">पिता का नाम</label><input type="text" id="m-father" required /></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="m-class">कक्षा</label>
+            <select id="m-class" required>
+              <option value="">कक्षा चुनें</option>
+              <option value="1">कक्षा 1</option><option value="2">कक्षा 2</option><option value="3">कक्षा 3</option><option value="4">कक्षा 4</option>
+              <option value="5">कक्षा 5</option><option value="6">कक्षा 6</option><option value="7">कक्षा 7</option><option value="8">कक्षा 8</option>
+            </select>
+          </div>
+          <div class="form-group"><label for="m-roll">क्रमांक</label><input type="number" id="m-roll" min="1" inputmode="numeric" required /></div>
+        </div>
+        <button type="submit" id="m-save" class="btn btn-success full">बदलाव सेव करें</button>
+        <p id="m-msg" class="msg" role="status"></p>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const norm = (v) => String(v || "").replace(/\s+/g, " ").trim().toLowerCase();
+    const todayISO = () => {
+      const n = new Date();
+      return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+    };
+    function say(id, text, type) { const el = $(id); el.textContent = text || ""; el.className = "msg" + (type ? " " + type : ""); }
+
+    function downloadCsv(filename, headers, rows) {
+      const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+      const lines = [headers.map(q).join(","), ...rows.map((r) => r.map(q).join(","))];
+      const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      $("logout-btn").addEventListener("click", async () => { await auth.signOut(); window.location.href = "index.html"; });
+      auth.onAuthStateChanged((user) => {
+        if (!user) { window.location.href = "index.html"; return; }
+        start();
+      });
+    });
+
+    function start() {
+      const MODEL_URLS = [
+        "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/",
+        "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights"
+      ];
+      const MODEL_ERR = "फेस मॉडल लोड नहीं हो सके। इंटरनेट जाँचकर पेज रीफ्रेश करें।";
+      let modelsLoaded = false, modelsPromise = null;
+      function ensureModels() {
+        if (modelsLoaded) return Promise.resolve(true);
+        if (!modelsPromise) {
+          modelsPromise = (async () => {
+            for (const url of MODEL_URLS) {
+              try {
+                await Promise.all([
+                  faceapi.nets.tinyFaceDetector.loadFromUri(url),
+                  faceapi.nets.faceLandmark68Net.loadFromUri(url),
+                  faceapi.nets.faceRecognitionNet.loadFromUri(url)
+                ]);
+                modelsLoaded = true;
+                return true;
+              } catch (err) { console.error("Model load failed:", url, err); }
+            }
+            modelsPromise = null;
+            return false;
+          })();
+        }
+        return modelsPromise;
+      }
+
+      let students = [];
+      let filterClass = "all";
+      let editing = null, pending = null, stream = null, saving = false;
+      const today = todayISO();
+      $("r-date").value = today;
+
+      const avatar = (name, photo, big) =>
+        photo ? `<img class="avatar${big ? " lg" : ""}" src="${esc(photo)}" alt="" />`
+              : `<span class="avatar${big ? " lg" : ""}">${esc((name || "?").trim().charAt(0))}</span>`;
+
+      const sortedStudents = () => [...students].sort((a, b) => {
+        const c = Number(a.class) - Number(b.class);
+        return c !== 0 ? c : Number(a.rollNo || 0) - Number(b.rollNo || 0);
+      });
+
+      async function loadStudents() {
+        try {
+          const snap = await db.collection("students").get();
+          students = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          render();
+        } catch (err) {
+          console.error(err);
+          $("list").innerHTML = `<div class="empty">डेटा लोड नहीं हो सका, इंटरनेट जाँचें।</div>`;
+        }
+      }
+
+      function render() {
+        const all = sortedStudents();
+        $("count").textContent = String(all.length);
+        const chips = [["all", "सभी", all.length]];
+        for (let c = 1; c <= 8; c++) chips.push([String(c), `कक्षा ${c}`, all.filter((s) => String(s.class) === String(c)).length]);
+        $("chips").innerHTML = chips.map(([v, l, n]) =>
+          `<button type="button" class="cchip${filterClass === v ? " active" : ""}" data-class="${v}"><b>${l}</b><span>${n}</span></button>`).join("");
+
+        const q = norm($("search").value);
+        const list = all.filter((s) =>
+          (filterClass === "all" || String(s.class) === filterClass) &&
+          (!q || norm(`${s.name} ${s.fatherName}`).includes(q)));
+        if (!list.length) { $("list").innerHTML = `<div class="empty">कोई विद्यार्थी नहीं मिला।</div>`; return; }
+        $("list").innerHTML = list.map((s) => `
+          <div class="scard">
+            ${avatar(s.name, s.photo, false)}
+            <div class="info">
+              <div class="nm">${esc(s.name)}</div>
+              <div class="sub">पिता: ${esc(s.fatherName || "-")}</div>
+              <div class="sub">कक्षा ${esc(s.class || "-")} · क्रमांक ${esc(s.rollNo || "-")}</div>
+            </div>
+            <button type="button" class="btn btn-light btn-sm" data-edit="${esc(s.id)}">✏️ बदलें</button>
+          </div>`).join("");
+      }
+
+      $("chips").addEventListener("click", (e) => {
+        const b = e.target.closest(".cchip"); if (!b) return;
+        filterClass = b.dataset.class; render();
+      });
+      $("search").addEventListener("input", render);
+      $("list").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-edit]"); if (!b) return;
+        openEdit(b.dataset.edit);
+      });
+
+      // ---- रिपोर्ट डाउनलोड ----
+      $("dl-btn").addEventListener("click", async () => {
+        const d = $("r-date").value || today;
+        const cls = $("r-class").value, st = $("r-status").value;
+        const btn = $("dl-btn");
+        btn.disabled = true;
+        try {
+          const doc = await db.collection("attendance").doc(d).get();
+          const present = new Set((doc.exists ? doc.data().students : []) || []);
+          const rows = sortedStudents()
+            .filter((s) => cls === "all" || String(s.class) === cls)
+            .map((s) => ({ s, status: present.has(s.id) ? "Present" : "Absent" }))
+            .filter((r) => st === "all" || r.status === st)
+            .map((r, i) => [i + 1, "GMS HARIPURA 1 TO 8", r.s.name || "", r.s.fatherName || "-", r.s.class ? `कक्षा ${r.s.class}` : "-", r.s.rollNo || "-", d, r.status]);
+          if (!rows.length) { say("rep-msg", "इस चयन में कोई विद्यार्थी नहीं है।", "err"); return; }
+          const tag = cls === "all" ? "All-Classes" : `Class-${cls}`;
+          downloadCsv(`GMS-Haripura-Attendance-${tag}-${d}.csv`,
+            ["Sr. No.", "School", "Name", "Father Name", "Class", "Roll No.", "Date", "Status"], rows);
+          say("rep-msg", `${rows.length} विद्यार्थियों की रिपोर्ट डाउनलोड हो गई।`, "ok");
+        } catch (err) {
+          console.error(err);
+          say("rep-msg", "रिपोर्ट नहीं बन सकी, इंटरनेट जाँचकर दोबारा कोशिश करें।", "err");
+        } finally { btn.disabled = false; }
+      });
+
+      // ---- विंडो ----
+      function paintPhoto() {
+        $("m-photo").innerHTML = avatar($("m-name").value || (editing && editing.name), (pending && pending.photo) || (editing && editing.photo), true);
+      }
+      function openEdit(id) {
+        editing = students.find((s) => s.id === id);
+        if (!editing) return;
+        pending = null;
+        $("m-name").value = editing.name || "";
+        $("m-father").value = editing.fatherName || "";
+        $("m-class").value = String(editing.class || "");
+        $("m-roll").value = editing.rollNo || "";
+        say("photo-msg", ""); say("m-msg", "");
+        stopCam();
+        paintPhoto();
+        $("edit-modal").classList.remove("hidden");
+        document.body.style.overflow = "hidden";
+      }
+      function closeEdit() {
+        stopCam();
+        $("edit-modal").classList.add("hidden");
+        document.body.style.overflow = "";
+        editing = null; pending = null;
+      }
+      $("m-close").addEventListener("click", closeEdit);
+      $("edit-modal").addEventListener("click", (e) => { if (e.target === $("edit-modal")) closeEdit(); });
+
+      // ---- फोटो: कैमरा / गैलरी ----
+      function stopCam() {
+        if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
+        $("m-video").srcObject = null;
+        $("cam-box").classList.add("hidden");
+      }
+      async function faceFrom(canvas) {
+        if (!(await ensureModels())) throw new Error(MODEL_ERR);
+        const det = await faceapi.detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+        if (!det) throw new Error("चेहरा स्पष्ट नहीं दिखा। सीधे सामने से, रोशनी में और सिर्फ़ एक बच्चे का फोटो लें।");
+        const b = det.detection.box, vw = canvas.width, vh = canvas.height;
+        const side = Math.min(Math.max(b.width, b.height) * 1.7, vw, vh);
+        const sx = Math.max(0, Math.min(vw - side, b.x + b.width / 2 - side / 2));
+        const sy = Math.max(0, Math.min(vh - side, b.y + b.height / 2 - side / 2));
+        const c = document.createElement("canvas");
+        c.width = c.height = 160;
+        c.getContext("2d").drawImage(canvas, sx, sy, side, side, 0, 0, 160, 160);
+        return { descriptor: Array.from(det.descriptor), photo: c.toDataURL("image/jpeg", 0.7) };
+      }
+      function sameFace(descriptor) {
+        const dist = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d * d; } return Math.sqrt(s); };
+        return students.find((p) => p.id !== editing.id && p.descriptor && p.descriptor.length === descriptor.length && dist(descriptor, p.descriptor) < 0.45);
+      }
+      async function takeFace(canvas) {
+        say("photo-msg", "चेहरा जाँचा जा रहा है...");
+        try {
+          const r = await faceFrom(canvas);
+          const other = sameFace(r.descriptor);
+          if (other) { say("photo-msg", `यह चेहरा किसी और विद्यार्थी (${other.name}) से मिलता है। सही बच्चे का फोटो लें।`, "err"); return; }
+          pending = r;
+          paintPhoto();
+          say("photo-msg", "नया फोटो तैयार है। नीचे 'बदलाव सेव करें' दबाएँ।", "ok");
+        } catch (err) { say("photo-msg", err.message || "फोटो नहीं लिया जा सका।", "err"); }
+      }
+
+      $("m-cam-btn").addEventListener("click", async () => {
+        say("photo-msg", "कैमरा खुल रहा है...");
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+          $("m-video").srcObject = stream;
+          await $("m-video").play();
+          $("cam-box").classList.remove("hidden");
+          say("photo-msg", "बच्चे को कैमरे के सामने सीधा रखकर 'फोटो खींचें' दबाएँ।");
+        } catch (err) { say("photo-msg", "कैमरा नहीं खुल सका। Camera Permission Allow करें।", "err"); }
+      });
+      $("m-snap-btn").addEventListener("click", async () => {
+        const v = $("m-video");
+        if (!v.videoWidth) return;
+        const c = document.createElement("canvas");
+        c.width = v.videoWidth; c.height = v.videoHeight;
+        c.getContext("2d").drawImage(v, 0, 0);
+        await takeFace(c);
+        if (pending) stopCam();
+      });
+
+      $("m-gal-btn").addEventListener("click", () => $("m-file").click());
+      $("m-file").addEventListener("change", async (e) => {
+        const f = e.target.files && e.target.files[0];
+        e.target.value = "";
+        if (!f) return;
+        say("photo-msg", "फोटो खुल रहा है...");
+        const img = new Image();
+        const url = URL.createObjectURL(f);
+        try {
+          await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = url; });
+          const k = Math.min(1, 900 / Math.max(img.naturalWidth, img.naturalHeight));
+          const c = document.createElement("canvas");
+          c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          stopCam();
+          await takeFace(c);
+        } catch (err) { say("photo-msg", "यह फोटो खुल नहीं सका, दूसरा फोटो चुनें।", "err"); }
+        finally { URL.revokeObjectURL(url); }
+      });
+
+      // ---- सेव ----
+      $("m-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (saving || !editing) return;
+        const name = $("m-name").value.trim(), fatherName = $("m-father").value.trim();
+        const cls = $("m-class").value, rollNo = Number($("m-roll").value);
+        if (!name) { say("m-msg", "विद्यार्थी का नाम लिखें।", "err"); return; }
+        if (!fatherName) { say("m-msg", "पिता का नाम लिखें।", "err"); return; }
+        if (!cls) { say("m-msg", "कक्षा चुनें।", "err"); return; }
+        if (!rollNo || rollNo < 1) { say("m-msg", "सही क्रमांक लिखें।", "err"); return; }
+        const dup = students.find((s) => s.id !== editing.id && norm(s.name) === norm(name) && norm(s.fatherName) === norm(fatherName) && String(s.class) === cls);
+        if (dup) { say("m-msg", `${name} (कक्षा ${cls}) पहले से दर्ज है, इसलिए यह जानकारी नहीं रखी जा सकती।`, "err"); return; }
+
+        saving = true;
+        $("m-save").disabled = true;
+        try {
+          const data = { name, fatherName, class: cls, rollNo };
+          if (pending) { data.descriptor = pending.descriptor; data.photo = pending.photo; }
+          await db.collection("students").doc(editing.id).update(data);
+          Object.assign(students.find((s) => s.id === editing.id), data);
+          const nm = name;
+          closeEdit();
+          render();
+          say("list-msg", `${nm} की जानकारी सेव हो गई।`, "ok");
+        } catch (err) {
+          console.error(err);
+          say("m-msg", "सेव नहीं हो सका, इंटरनेट जाँचकर दोबारा कोशिश करें।", "err");
+        } finally { saving = false; $("m-save").disabled = false; }
+      });
+
+      loadStudents();
+    }
+  </script>
+</body>
+</html>
