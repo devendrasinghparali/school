@@ -218,6 +218,16 @@
     .header-actions .btn-secondary { background: rgba(255, 255, 255, 0.14); color: #fff; }
     .header-actions .btn-danger { background: transparent; color: #ffb4ad; border: 1.5px solid rgba(255, 180, 173, 0.5); }
     .camera-header .btn-secondary { background: #e9edf5; color: var(--ink); }
+    .cam-btns { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+    .att-flash {
+      position: absolute; left: 10px; right: 10px; bottom: 12px; z-index: 3; text-align: center;
+      background: rgba(22, 121, 74, 0.95); color: #fff; font-weight: 800; font-size: 1.25rem; line-height: 1.3;
+      padding: 10px 12px; border-radius: 12px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+      opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; pointer-events: none;
+    }
+    .att-flash.show { opacity: 1; transform: none; }
+    .att-flash.dup { background: rgba(232, 137, 12, 0.96); }
+    .att-flash.err { background: rgba(180, 35, 24, 0.96); }
 
     /* ---------- Modal (bottom sheet on phones) ---------- */
     .modal-backdrop {
@@ -267,11 +277,15 @@
       <div class="large-camera-box">
         <div class="camera-header">
           <strong><span class="dot"></span><span id="camera-mode-label">कैमरा तैयार है</span></strong>
-          <button type="button" id="stop-camera-btn" class="btn btn-secondary btn-sm hidden">कैमरा बंद करें</button>
+          <div class="cam-btns">
+            <button type="button" id="sound-btn" class="btn btn-secondary btn-sm" aria-pressed="true">🔊 आवाज़: चालू</button>
+            <button type="button" id="stop-camera-btn" class="btn btn-secondary btn-sm hidden">कैमरा बंद करें</button>
+          </div>
         </div>
         <div id="att-wrap" class="video-wrapper large-video-wrapper">
           <video id="att-video" autoplay muted playsinline></video>
           <canvas id="att-overlay"></canvas>
+          <div id="att-flash" class="att-flash" aria-live="polite"></div>
         </div>
         <p id="camera-feedback" class="feedback-text">उपस्थिति लेने के लिए बटन दबाएं।</p>
       </div>
@@ -613,7 +627,100 @@
         });
       }
 
+      // ---- आवाज़ व नाम बोलना ----
+      let soundOn = true;
+      try { soundOn = localStorage.getItem("att-sound") !== "off"; } catch (e) {}
+      const soundBtn = document.getElementById("sound-btn");
+      function paintSoundBtn() {
+        soundBtn.textContent = soundOn ? "🔊 आवाज़: चालू" : "🔇 आवाज़: बंद";
+        soundBtn.setAttribute("aria-pressed", String(soundOn));
+      }
+      paintSoundBtn();
+
+      let audioCtx = null;
+      function unlockAudio() {
+        try {
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === "suspended") audioCtx.resume();
+        } catch (e) {}
+        try {
+          if ("speechSynthesis" in window) {
+            const u = new SpeechSynthesisUtterance(" ");
+            u.volume = 0;
+            window.speechSynthesis.speak(u);
+          }
+        } catch (e) {}
+      }
+
+      function beep(kind) {
+        if (!audioCtx) return;
+        const tones = kind === "ok" ? [[880, 0], [1175, 0.14]] : kind === "dup" ? [[520, 0]] : [[260, 0], [200, 0.16]];
+        const now = audioCtx.currentTime;
+        tones.forEach(([freq, delay]) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "sine";
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.0001, now + delay);
+          gain.gain.exponentialRampToValueAtTime(0.4, now + delay + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + 0.22);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + delay);
+          osc.stop(now + delay + 0.24);
+        });
+      }
+
+      function speak(text, skipIfBusy) {
+        if (!("speechSynthesis" in window)) return;
+        const synth = window.speechSynthesis;
+        if (skipIfBusy && synth.speaking) return;
+        const voices = synth.getVoices();
+        const hi = voices.find((v) => (v.lang || "").toLowerCase().startsWith("hi"));
+        if (voices.length && !hi) return; // फोन में हिंदी आवाज़ नहीं है तो सिर्फ़ बीप बजेगी
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = "hi-IN";
+        if (hi) u.voice = hi;
+        u.rate = 0.95;
+        synth.speak(u);
+      }
+
+      const attFlash = document.getElementById("att-flash");
+      let flashTimer = null;
+      function flash(text, kind) {
+        attFlash.textContent = text;
+        attFlash.className = "att-flash show" + (kind ? " " + kind : "");
+        clearTimeout(flashTimer);
+        flashTimer = setTimeout(() => { attFlash.className = "att-flash"; }, 2200);
+      }
+
+      const lastDup = new Map();
+      function announce(person, kind) {
+        if (kind === "dup") {
+          const t = Date.now();
+          if (lastDup.get(person.id) && t - lastDup.get(person.id) < 8000) return;
+          lastDup.set(person.id, t);
+        }
+        if (kind === "new") flash(`✔ ${person.name} — उपस्थित`, "");
+        else if (kind === "dup") flash(`${person.name} — पहले से उपस्थित`, "dup");
+        else flash("उपस्थिति सेव नहीं हो सकी", "err");
+        if (!soundOn) return;
+        beep(kind === "new" ? "ok" : kind === "dup" ? "dup" : "err");
+        if (kind === "new") speak(`${person.name}, उपस्थिति हो गई`);
+        else if (kind === "dup") speak(`${person.name}, पहले से उपस्थित`, true);
+        else speak("उपस्थिति सेव नहीं हो सकी", true);
+      }
+
+      soundBtn.addEventListener("click", () => {
+        soundOn = !soundOn;
+        try { localStorage.setItem("att-sound", soundOn ? "on" : "off"); } catch (e) {}
+        paintSoundBtn();
+        if (soundOn) { unlockAudio(); beep("ok"); }
+        else if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      });
+
       function stopAttCam() {
+        if ("speechSynthesis" in window) window.speechSynthesis.cancel();
         if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
         if (attStream) { attStream.getTracks().forEach((t) => t.stop()); attStream = null; }
         attVideo.srcObject = null;
@@ -687,6 +794,7 @@
               const set = mode === "student" ? presentStudentIds : presentCookIds;
               if (set.has(person.id)) {
                 cameraFeedback.textContent = `पहले से उपस्थित: ${person.name}`;
+                announce(person, "dup");
                 continue;
               }
               set.add(person.id);
@@ -696,9 +804,11 @@
                   [mode === "student" ? "students" : "cooks"]: firebase.firestore.FieldValue.arrayUnion(person.id)
                 }, { merge: true });
                 cameraFeedback.textContent = `उपस्थित दर्ज: ${person.name}`;
+                announce(person, "new");
               } catch (err) {
                 set.delete(person.id);
                 cameraFeedback.textContent = "उपस्थिति सेव नहीं हो सकी, इंटरनेट जाँचें।";
+                announce(person, "err");
               }
               if (excelDateInput.value === today) renderTable(today);
             }
@@ -890,6 +1000,8 @@
 
       document.getElementById("start-student-att-btn").addEventListener("click", () => startAttCam("student", "बच्चों की उपस्थिति ले"));
       document.getElementById("start-cook-att-btn").addEventListener("click", () => startAttCam("cook", "रसोई की उपस्थिति ले"));
+      document.getElementById("start-student-att-btn").addEventListener("click", unlockAudio);
+      document.getElementById("start-cook-att-btn").addEventListener("click", unlockAudio);
       stopAttCamBtn.addEventListener("click", stopAttCam);
       document.getElementById("open-add-student-btn").addEventListener("click", () => openModal("student"));
       document.getElementById("open-add-cook-btn").addEventListener("click", () => openModal("cook"));
