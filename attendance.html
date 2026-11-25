@@ -218,6 +218,25 @@
     .header-actions .btn-secondary { background: rgba(255, 255, 255, 0.14); color: #fff; }
     .header-actions .btn-danger { background: transparent; color: #ffb4ad; border: 1.5px solid rgba(255, 180, 173, 0.5); }
     .camera-header .btn-secondary { background: #e9edf5; color: var(--ink); }
+    .avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; background: #e6eefb; color: #1e3f7a; display: inline-grid; place-items: center; font-weight: 800; font-size: 1.1rem; flex: none; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+    .avatar.lg { width: 76px; height: 76px; font-size: 1.7rem; }
+    .class-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+    @media (min-width: 560px) { .class-chips { grid-template-columns: repeat(5, 1fr); } }
+    @media (min-width: 900px) { .class-chips { grid-template-columns: repeat(9, 1fr); } }
+    .cchip { border: 1.5px solid var(--line); background: var(--tint); border-radius: 12px; padding: 7px 4px; text-align: center; cursor: pointer; font: inherit; color: var(--ink); }
+    .cchip b { display: block; font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+    .cchip span { font-size: 1.05rem; font-weight: 800; }
+    .cchip.active { border-color: var(--teal); background: #e3f4f2; }
+    .stat.absent .bar i { background: var(--red); }
+    .photo-person { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+    .photo-person b { display: block; font-size: 1.1rem; }
+    .photo-person small { color: var(--muted); font-weight: 600; }
+    .data-table td.cell-actions { white-space: nowrap; }
+    @media (max-width: 700px) {
+      .data-table td.cell-actions { justify-content: stretch; }
+      .data-table td.cell-actions::before { content: none; }
+      .data-table td.cell-actions .btn { width: 100%; }
+    }
     .cam-btns { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
     .att-flash {
       position: absolute; left: 10px; right: 10px; bottom: 12px; z-index: 3; text-align: center;
@@ -264,7 +283,6 @@
       </div>
       <nav class="header-actions" aria-label="मुख्य मेनू">
         <button type="button" id="open-add-student-btn" class="btn btn-success btn-sm">+ बच्चों को ऐड करे</button>
-        <button type="button" id="open-add-cook-btn" class="btn btn-success btn-sm">+ रसोइए ऐड करे</button>
         <a href="home.html" class="btn btn-secondary btn-sm">होम</a>
         <a href="mdm.html" class="btn btn-secondary btn-sm">MDM</a>
         <button type="button" id="logout-btn" class="btn btn-danger btn-sm">लॉगआउट</button>
@@ -297,7 +315,6 @@
         </div>
         <div class="side-btn-group">
           <button type="button" id="start-student-att-btn" class="btn btn-primary full-width">बच्चों की उपस्थिति ले</button>
-          <button type="button" id="start-cook-att-btn" class="btn btn-primary full-width">रसोई की उपस्थिति ले</button>
         </div>
         <div class="stats">
           <div class="stat">
@@ -305,10 +322,10 @@
             <div class="stat-value"><strong id="present-students-count">0</strong> <span>/ <strong id="total-students-count">0</strong></span></div>
             <div class="bar"><i id="students-bar"></i></div>
           </div>
-          <div class="stat cook">
-            <div class="stat-label">उपस्थित रसोइए</div>
-            <div class="stat-value"><strong id="present-cooks-count">0</strong> <span>/ <strong id="total-cooks-count">0</strong></span></div>
-            <div class="bar"><i id="cooks-bar"></i></div>
+          <div class="stat absent">
+            <div class="stat-label">अनुपस्थित बच्चे</div>
+            <div class="stat-value"><strong id="absent-students-count">0</strong></div>
+            <div class="bar"><i id="absent-bar"></i></div>
           </div>
         </div>
         <p id="reg-status-msg" class="feedback-text"></p>
@@ -323,36 +340,45 @@
     <section class="card">
       <div class="report-toolbar">
         <div>
-          <h3>उपस्थित व अनुपस्थित रिपोर्ट (बच्चे व रसोइया)</h3>
-          <p class="hint">सभी बच्चों और रसोइयों की उपस्थिति व अनुपस्थिति की सूची।</p>
+          <h3>कक्षा अनुसार उपस्थिति रिपोर्ट</h3>
+          <p class="hint">कक्षा चुनकर उसके बच्चों की उपस्थिति देखें और Excel में डाउनलोड करें।</p>
         </div>
         <div class="toolbar-controls">
           <input type="date" id="excel-date-input" aria-label="तारीख चुनें" />
+          <select id="report-class-select" aria-label="कक्षा चुनें">
+            <option value="all">सभी कक्षाएँ</option>
+            <option value="1">कक्षा 1</option><option value="2">कक्षा 2</option><option value="3">कक्षा 3</option><option value="4">कक्षा 4</option>
+            <option value="5">कक्षा 5</option><option value="6">कक्षा 6</option><option value="7">कक्षा 7</option><option value="8">कक्षा 8</option>
+          </select>
           <select id="report-filter-select" aria-label="फ़िल्टर">
-            <option value="all">सभी (उपस्थित व अनुपस्थित)</option>
+            <option value="all">उपस्थित व अनुपस्थित</option>
             <option value="Present">केवल उपस्थित</option>
             <option value="Absent">केवल अनुपस्थित</option>
           </select>
-          <button type="button" id="download-all-excel-btn" class="btn btn-success">Excel डाउनलोड</button>
+          <input type="search" id="report-search" placeholder="नाम से खोजें" aria-label="नाम से खोजें" />
+          <button type="button" id="download-all-excel-btn" class="btn btn-success">Excel डाउनलोड (चुनी हुई कक्षा)</button>
         </div>
       </div>
+
+      <div id="class-chips" class="class-chips" aria-label="कक्षा अनुसार उपस्थित / कुल"></div>
 
       <div class="table-responsive">
         <table class="data-table">
           <thead>
             <tr>
               <th>क्र.</th>
-              <th>वर्ग</th>
+              <th>फोटो</th>
               <th>नाम</th>
               <th>पिता का नाम</th>
               <th>कक्षा</th>
               <th>क्रमांक</th>
               <th>तारीख</th>
               <th>स्थिति</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="attendance-report-tbody">
-            <tr class="empty-row"><td colspan="8" class="empty-cell">डेटा लोड हो रहा है...</td></tr>
+            <tr class="empty-row"><td colspan="9" class="empty-cell">डेटा लोड हो रहा है...</td></tr>
           </tbody>
         </table>
       </div>
@@ -400,12 +426,13 @@
             <button type="submit" class="btn btn-success full-width">चेहरा कैप्चर कर सेव करें</button>
           </form>
 
-          <form id="modal-cook-form" class="hidden">
-            <div class="form-group">
-              <label for="m-cook-name">रसोइए का नाम</label>
-              <input type="text" id="m-cook-name" required placeholder="रसोइए का नाम लिखें" />
+          <form id="modal-photo-form" class="hidden">
+            <div class="photo-person">
+              <div id="photo-current"></div>
+              <div><b id="photo-name"></b><small id="photo-meta"></small></div>
             </div>
-            <button type="submit" class="btn btn-success full-width">चेहरा कैप्चर कर रसोइया सेव करें</button>
+            <p class="hint" style="margin-bottom:12px">बच्चे को कैमरे के सामने सीधा खड़ा करें। नया फोटो लगने के साथ चेहरे की पहचान भी नई हो जाएगी।</p>
+            <button type="submit" class="btn btn-success full-width">नया फोटो कैप्चर कर सेव करें</button>
           </form>
 
           <p id="modal-feedback" class="feedback-text">जानकारी भरें और कैमरे के सामने चेहरा रखकर सेव करें।</p>
@@ -478,13 +505,17 @@
       const modalHeading = document.getElementById("modal-heading");
       const closeModalBtn = document.getElementById("close-modal-btn");
       const studentForm = document.getElementById("modal-student-form");
-      const cookForm = document.getElementById("modal-cook-form");
+      const photoForm = document.getElementById("modal-photo-form");
       const modalFeedback = document.getElementById("modal-feedback");
       const modalVideo = document.getElementById("modal-video");
       const modalOverlay = document.getElementById("modal-overlay");
 
       const excelDateInput = document.getElementById("excel-date-input");
       const filterSelect = document.getElementById("report-filter-select");
+      const classSelect = document.getElementById("report-class-select");
+      const searchInput = document.getElementById("report-search");
+      const chipsEl = document.getElementById("class-chips");
+      const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
       const reportTbody = document.getElementById("attendance-report-tbody");
 
       let modelsLoaded = false;
@@ -492,11 +523,10 @@
       let modalStream = null;
       let scanInterval = null;
       let modalMode = null;
+      let photoTarget = null;
 
       let studentsCache = [];
-      let cooksCache = [];
       let presentStudentIds = new Set();
-      let presentCookIds = new Set();
       let loadedDate = null;
       let saving = false;
 
@@ -532,99 +562,93 @@
 
       async function loadDataForDate(targetDate) {
         loadedDate = targetDate;
-        const [stuSnap, cookSnap, attDoc] = await Promise.all([
+        const [stuSnap, attDoc] = await Promise.all([
           db.collection("students").get(),
-          db.collection("cooks").get(),
           db.collection("attendance").doc(targetDate).get()
         ]);
-
         studentsCache = stuSnap.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
           descriptor: new Float32Array(doc.data().descriptor)
         }));
-
-        cooksCache = cookSnap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          descriptor: new Float32Array(doc.data().descriptor)
-        }));
-
-        const attData = attDoc.exists ? attDoc.data() : { students: [], cooks: [] };
-        presentStudentIds = new Set(attData.students || []);
-        presentCookIds = new Set(attData.cooks || []);
-
+        presentStudentIds = new Set((attDoc.exists ? attDoc.data().students : []) || []);
         renderTable(targetDate);
         showDup();
       }
 
-      function getCombinedRows(targetDate) {
-        const sortedStudents = [...studentsCache].sort((a, b) => {
-          const cDiff = Number(a.class) - Number(b.class);
-          return cDiff !== 0 ? cDiff : Number(a.rollNo || 0) - Number(b.rollNo || 0);
-        });
-
-        return [
-          ...sortedStudents.map((s) => ({
-            category: "बच्चा",
+      function getStudentRows(targetDate) {
+        return [...studentsCache]
+          .sort((a, b) => {
+            const cDiff = Number(a.class) - Number(b.class);
+            return cDiff !== 0 ? cDiff : Number(a.rollNo || 0) - Number(b.rollNo || 0);
+          })
+          .map((s) => ({
+            id: s.id,
+            photo: s.photo || "",
             name: s.name || "",
             fatherName: s.fatherName || "-",
+            classNo: String(s.class || ""),
             className: s.class ? `कक्षा ${s.class}` : "-",
             rollNo: s.rollNo || "-",
             date: targetDate,
             status: presentStudentIds.has(s.id) ? "Present" : "Absent"
-          })),
-          ...cooksCache.map((c) => ({
-            category: "रसोइया",
-            name: c.name || "",
-            fatherName: "-",
-            className: "-",
-            rollNo: "-",
-            date: targetDate,
-            status: presentCookIds.has(c.id) ? "Present" : "Absent"
-          }))
-        ];
+          }));
       }
 
+      function visibleRows(targetDate, withSearch) {
+        const cls = classSelect.value, st = filterSelect.value, q = norm(searchInput.value);
+        return getStudentRows(targetDate).filter((r) =>
+          (cls === "all" || r.classNo === cls) &&
+          (st === "all" || r.status === st) &&
+          (!withSearch || !q || norm(r.name + " " + r.fatherName).includes(q))
+        );
+      }
+
+      const avatarHtml = (name, photo, big) =>
+        photo ? `<img class="avatar${big ? " lg" : ""}" src="${esc(photo)}" alt="" />`
+              : `<span class="avatar${big ? " lg" : ""}">${esc((name || "?").trim().charAt(0))}</span>`;
+
       function renderTable(targetDate) {
-        const pS = studentsCache.filter((x) => presentStudentIds.has(x.id)).length;
-        const pC = cooksCache.filter((x) => presentCookIds.has(x.id)).length;
-        document.getElementById("total-students-count").textContent = String(studentsCache.length);
+        const all = getStudentRows(targetDate);
+        const total = all.length;
+        const pS = all.filter((r) => r.status === "Present").length;
+        document.getElementById("total-students-count").textContent = String(total);
         document.getElementById("present-students-count").textContent = String(pS);
-        document.getElementById("total-cooks-count").textContent = String(cooksCache.length);
-        document.getElementById("present-cooks-count").textContent = String(pC);
+        document.getElementById("absent-students-count").textContent = String(total - pS);
         const setBar = (id, p, t) => {
           const el = document.getElementById(id);
           if (el) el.style.width = t ? Math.min(100, Math.round((p / t) * 100)) + "%" : "0%";
         };
-        setBar("students-bar", pS, studentsCache.length);
-        setBar("cooks-bar", pC, cooksCache.length);
+        setBar("students-bar", pS, total);
+        setBar("absent-bar", total - pS, total);
 
-        const rows = getCombinedRows(targetDate).filter((r) =>
-          filterSelect.value === "all" ? true : r.status === filterSelect.value
-        );
+        const chips = [["all", "सभी", all]];
+        for (let c = 1; c <= 8; c++) chips.push([String(c), `कक्षा ${c}`, all.filter((r) => r.classNo === String(c))]);
+        chipsEl.innerHTML = chips.map(([v, label, list]) => `
+          <button type="button" class="cchip${classSelect.value === v ? " active" : ""}" data-class="${v}">
+            <b>${label}</b><span>${list.filter((r) => r.status === "Present").length}/${list.length}</span>
+          </button>`).join("");
 
+        const rows = visibleRows(targetDate, true);
         if (!rows.length) {
-          reportTbody.innerHTML = `<tr class="empty-row"><td colspan="8" class="empty-cell">कोई रिकॉर्ड उपलब्ध नहीं है।</td></tr>`;
+          reportTbody.innerHTML = `<tr class="empty-row"><td colspan="9" class="empty-cell">कोई रिकॉर्ड उपलब्ध नहीं है।</td></tr>`;
           return;
         }
-
-        reportTbody.innerHTML = "";
-        rows.forEach((r, i) => {
+        reportTbody.innerHTML = rows.map((r, i) => {
           const isPresent = r.status === "Present";
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
+          return `
+          <tr>
             <td data-label="क्र.">${i + 1}</td>
-            <td data-label="वर्ग"><span class="tag">${r.category}</span></td>
-            <td data-label="नाम" class="cell-name">${r.name}</td>
-            <td data-label="पिता का नाम">${r.fatherName}</td>
-            <td data-label="कक्षा">${r.className}</td>
-            <td data-label="क्रमांक">${r.rollNo}</td>
-            <td data-label="तारीख">${r.date}</td>
+            <td data-label="फोटो">${avatarHtml(r.name, r.photo, false)}</td>
+            <td data-label="नाम" class="cell-name">${esc(r.name)}</td>
+            <td data-label="पिता का नाम">${esc(r.fatherName)}</td>
+            <td data-label="कक्षा">${esc(r.className)}</td>
+            <td data-label="क्रमांक">${esc(r.rollNo)}</td>
+            <td data-label="तारीख">${esc(r.date)}</td>
             <td data-label="स्थिति"><span class="${isPresent ? "badge-present" : "badge-absent"}">${isPresent ? "उपस्थित" : "अनुपस्थित"}</span></td>
-          `;
-          reportTbody.appendChild(tr);
-        });
+            <td class="cell-actions"><button type="button" class="btn btn-secondary btn-sm" data-act="photo" data-id="${esc(r.id)}">📷 फोटो बदलें</button></td>
+          </tr>`;
+        }).join("");
       }
 
       // ---- आवाज़ व नाम बोलना ----
@@ -753,9 +777,9 @@
       }
 
       function runRecognition(mode) {
-        const candidates = mode === "student" ? studentsCache : cooksCache;
+        const candidates = studentsCache;
         if (!candidates.length) {
-          cameraFeedback.textContent = "पहले ऊपर से बच्चा या रसोइया ऐड करें।";
+          cameraFeedback.textContent = "पहले ऊपर से बच्चे ऐड करें।";
           return;
         }
         const matcher = new faceapi.FaceMatcher(
@@ -791,7 +815,7 @@
               const person = candidates.find((p) => p.id === match.label);
               if (!person) continue;
 
-              const set = mode === "student" ? presentStudentIds : presentCookIds;
+              const set = presentStudentIds;
               if (set.has(person.id)) {
                 cameraFeedback.textContent = `पहले से उपस्थित: ${person.name}`;
                 announce(person, "dup");
@@ -801,7 +825,7 @@
               try {
                 await db.collection("attendance").doc(today).set({
                   date: today,
-                  [mode === "student" ? "students" : "cooks"]: firebase.firestore.FieldValue.arrayUnion(person.id)
+                  students: firebase.firestore.FieldValue.arrayUnion(person.id)
                 }, { merge: true });
                 cameraFeedback.textContent = `उपस्थित दर्ज: ${person.name}`;
                 announce(person, "new");
@@ -820,12 +844,18 @@
         }, 900);
       }
 
-      async function openModal(type) {
+      async function openModal(type, person) {
         stopAttCam();
         modalMode = type;
-        modalHeading.textContent = type === "student" ? "बच्चों को ऐड करे" : "रसोइए ऐड करे";
+        photoTarget = person || null;
+        modalHeading.textContent = type === "photo" ? "फोटो बदलें" : "बच्चों को ऐड करे";
         studentForm.classList.toggle("hidden", type !== "student");
-        cookForm.classList.toggle("hidden", type !== "cook");
+        photoForm.classList.toggle("hidden", type !== "photo");
+        if (type === "photo" && person) {
+          document.getElementById("photo-current").innerHTML = avatarHtml(person.name, person.photo, true);
+          document.getElementById("photo-name").textContent = person.name || "";
+          document.getElementById("photo-meta").textContent = `${person.class ? "कक्षा " + person.class : ""}${person.rollNo ? " · क्रमांक " + person.rollNo : ""}`;
+        }
         modalFeedback.textContent = "कैमरा खुल रहा है...";
         modalBackdrop.classList.remove("hidden");
 
@@ -833,7 +863,9 @@
           modalStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
           modalVideo.srcObject = modalStream;
           await modalVideo.play();
-          modalFeedback.textContent = "जानकारी भरें और कैमरे के सामने चेहरा रखकर सेव दबाएं।";
+          modalFeedback.textContent = type === "photo"
+            ? "बच्चे को कैमरे के सामने रखकर सेव दबाएं।"
+            : "जानकारी भरें और कैमरे के सामने चेहरा रखकर सेव दबाएं।";
         } catch (err) {
           modalFeedback.textContent = "कैमरा नहीं खुल सका। Camera Permission Allow करें।";
         }
@@ -848,14 +880,24 @@
 
       async function captureDescriptor() {
         if (!(await ensureModels())) throw new Error(MODEL_ERR);
-        modalOverlay.width = modalVideo.videoWidth;
-        modalOverlay.height = modalVideo.videoHeight;
+        const vw = modalVideo.videoWidth, vh = modalVideo.videoHeight;
+        modalOverlay.width = vw;
+        modalOverlay.height = vh;
         const det = await faceapi
           .detectSingleFace(modalVideo, new faceapi.TinyFaceDetectorOptions())
           .withFaceLandmarks()
           .withFaceDescriptor();
         if (!det) throw new Error("चेहरा स्पष्ट नहीं दिखा, सीधे कैमरे की ओर देखें।");
-        return Array.from(det.descriptor);
+
+        // चेहरे के आसपास का छोटा फोटो (160×160)
+        const b = det.detection.box;
+        const side = Math.min(Math.max(b.width, b.height) * 1.7, vw, vh);
+        const sx = Math.max(0, Math.min(vw - side, b.x + b.width / 2 - side / 2));
+        const sy = Math.max(0, Math.min(vh - side, b.y + b.height / 2 - side / 2));
+        const c = document.createElement("canvas");
+        c.width = c.height = 160;
+        c.getContext("2d").drawImage(modalVideo, sx, sy, side, side, 0, 0, 160, 160);
+        return { descriptor: Array.from(det.descriptor), photo: c.toDataURL("image/jpeg", 0.7) };
       }
 
       // ---- डुप्लीकेट रोकना ----
@@ -865,62 +907,42 @@
         for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; sum += d * d; }
         return Math.sqrt(sum);
       };
-      function findSameFace(descriptor) {
-        const all = [
-          ...studentsCache.map((p) => ({ p, t: "बच्चा" })),
-          ...cooksCache.map((p) => ({ p, t: "रसोइया" }))
-        ];
-        for (const { p, t } of all) {
-          if (p.descriptor && p.descriptor.length === descriptor.length && faceDist(descriptor, p.descriptor) < 0.45) return { p, t };
+      function findSameFace(descriptor, excludeId) {
+        for (const p of studentsCache) {
+          if (p.id === excludeId) continue;
+          if (p.descriptor && p.descriptor.length === descriptor.length && faceDist(descriptor, p.descriptor) < 0.45) return p;
         }
         return null;
       }
 
-      async function registerPerson(kind) {
+      async function registerPerson() {
         if (saving) return;
-        let name, fatherName = "", studentClass = "", rollNo = 0;
-        if (kind === "student") {
-          name = document.getElementById("m-student-name").value.trim();
-          fatherName = document.getElementById("m-student-father").value.trim();
-          studentClass = document.getElementById("m-student-class").value;
-          rollNo = Number(document.getElementById("m-student-roll").value);
-        } else {
-          name = document.getElementById("m-cook-name").value.trim();
-        }
+        const name = document.getElementById("m-student-name").value.trim();
+        const fatherName = document.getElementById("m-student-father").value.trim();
+        const studentClass = document.getElementById("m-student-class").value;
+        const rollNo = Number(document.getElementById("m-student-roll").value);
         if (!name) { modalFeedback.textContent = "नाम लिखें।"; return; }
 
         saving = true;
         const btns = [...modalBackdrop.querySelectorAll('form button:not([type="button"])')];
         btns.forEach((b) => { b.disabled = true; });
         try {
-          const sameName = kind === "student"
-            ? studentsCache.find((x) => norm(x.name) === norm(name) && norm(x.fatherName) === norm(fatherName) && String(x.class) === String(studentClass))
-            : cooksCache.find((x) => norm(x.name) === norm(name));
+          const sameName = studentsCache.find((x) => norm(x.name) === norm(name) && norm(x.fatherName) === norm(fatherName) && String(x.class) === String(studentClass));
           if (sameName) {
             modalFeedback.textContent = `${name} पहले से जुड़ा हुआ है, दोबारा नहीं जोड़ा जा सकता।`;
             return;
           }
-
           modalFeedback.textContent = "चेहरा सेव हो रहा है...";
-          const descriptor = await captureDescriptor();
-
+          const { descriptor, photo } = await captureDescriptor();
           const same = findSameFace(descriptor);
           if (same) {
-            modalFeedback.textContent = `यह चेहरा पहले से रजिस्टर है: ${same.p.name} (${same.t})।`;
+            modalFeedback.textContent = `यह चेहरा पहले से रजिस्टर है: ${same.name}।`;
             return;
           }
-
-          if (kind === "student") {
-            const ref = await db.collection("students").add({ name, fatherName, class: studentClass, rollNo, descriptor });
-            studentsCache.push({ id: ref.id, name, fatherName, class: studentClass, rollNo, descriptor: new Float32Array(descriptor) });
-            studentForm.reset();
-            regStatusMsg.textContent = `बच्चा जुड़ गया: ${name}`;
-          } else {
-            const ref = await db.collection("cooks").add({ name, descriptor });
-            cooksCache.push({ id: ref.id, name, descriptor: new Float32Array(descriptor) });
-            cookForm.reset();
-            regStatusMsg.textContent = `रसोइया जुड़ गया: ${name}`;
-          }
+          const ref = await db.collection("students").add({ name, fatherName, class: studentClass, rollNo, descriptor, photo });
+          studentsCache.push({ id: ref.id, name, fatherName, class: studentClass, rollNo, photo, descriptor: new Float32Array(descriptor) });
+          studentForm.reset();
+          regStatusMsg.textContent = `बच्चा जुड़ गया: ${name}`;
           renderTable(excelDateInput.value || today);
           closeModal();
         } catch (err) {
@@ -931,8 +953,35 @@
         }
       }
 
-      studentForm.addEventListener("submit", (e) => { e.preventDefault(); registerPerson("student"); });
-      cookForm.addEventListener("submit", (e) => { e.preventDefault(); registerPerson("cook"); });
+      async function changePhoto() {
+        if (saving || !photoTarget) return;
+        saving = true;
+        const btns = [...modalBackdrop.querySelectorAll('form button:not([type="button"])')];
+        btns.forEach((b) => { b.disabled = true; });
+        try {
+          modalFeedback.textContent = "नया फोटो सेव हो रहा है...";
+          const { descriptor, photo } = await captureDescriptor();
+          const same = findSameFace(descriptor, photoTarget.id);
+          if (same) {
+            modalFeedback.textContent = `यह चेहरा किसी और बच्चे (${same.name}) से मिलता है। सही बच्चे को कैमरे के सामने रखें।`;
+            return;
+          }
+          await db.collection("students").doc(photoTarget.id).update({ descriptor, photo });
+          const cached = studentsCache.find((x) => x.id === photoTarget.id);
+          if (cached) { cached.descriptor = new Float32Array(descriptor); cached.photo = photo; }
+          regStatusMsg.textContent = `${photoTarget.name} का फोटो बदल गया।`;
+          renderTable(excelDateInput.value || today);
+          closeModal();
+        } catch (err) {
+          modalFeedback.textContent = err.message || "फोटो सेव नहीं हो सका, दोबारा कोशिश करें।";
+        } finally {
+          saving = false;
+          btns.forEach((b) => { b.disabled = false; });
+        }
+      }
+
+      studentForm.addEventListener("submit", (e) => { e.preventDefault(); registerPerson(); });
+      photoForm.addEventListener("submit", (e) => { e.preventDefault(); changePhoto(); });
 
       // ---- पहले से बने डुप्लीकेट पकड़ना व हटाना ----
       const dupBanner = document.getElementById("dup-banner");
@@ -952,7 +1001,6 @@
           m.forEach((arr) => { if (arr.length > 1) groups.push({ coll, label, name: arr[0].name, items: arr }); });
         };
         scan(studentsCache, "students", "बच्चा", (p) => `${norm(p.name)}|${norm(p.fatherName)}|${p.class}`);
-        scan(cooksCache, "cooks", "रसोइया", (p) => norm(p.name));
         return groups;
       }
 
@@ -972,8 +1020,8 @@
         try {
           const attSnap = await db.collection("attendance").get();
           for (const g of dupGroups) {
-            const field = g.coll === "students" ? "students" : "cooks";
-            const presentSet = g.coll === "students" ? presentStudentIds : presentCookIds;
+            const field = "students";
+            const presentSet = presentStudentIds;
             const sorted = [...g.items].sort((a, b) => Number(presentSet.has(b.id)) - Number(presentSet.has(a.id)));
             const keep = sorted[0];
             const removeIds = sorted.slice(1).map((x) => x.id);
@@ -999,26 +1047,40 @@
       });
 
       document.getElementById("start-student-att-btn").addEventListener("click", () => startAttCam("student", "बच्चों की उपस्थिति ले"));
-      document.getElementById("start-cook-att-btn").addEventListener("click", () => startAttCam("cook", "रसोई की उपस्थिति ले"));
       document.getElementById("start-student-att-btn").addEventListener("click", unlockAudio);
-      document.getElementById("start-cook-att-btn").addEventListener("click", unlockAudio);
       stopAttCamBtn.addEventListener("click", stopAttCam);
       document.getElementById("open-add-student-btn").addEventListener("click", () => openModal("student"));
-      document.getElementById("open-add-cook-btn").addEventListener("click", () => openModal("cook"));
       closeModalBtn.addEventListener("click", closeModal);
 
+      const rerender = () => renderTable(excelDateInput.value || today);
       excelDateInput.addEventListener("change", () => loadDataForDate(excelDateInput.value || today));
-      filterSelect.addEventListener("change", () => renderTable(excelDateInput.value || today));
+      filterSelect.addEventListener("change", rerender);
+      classSelect.addEventListener("change", rerender);
+      searchInput.addEventListener("input", rerender);
+      chipsEl.addEventListener("click", (e) => {
+        const b = e.target.closest(".cchip");
+        if (!b) return;
+        classSelect.value = b.dataset.class;
+        rerender();
+      });
+      reportTbody.addEventListener("click", (e) => {
+        const b = e.target.closest('button[data-act="photo"]');
+        if (!b) return;
+        const person = studentsCache.find((x) => x.id === b.dataset.id);
+        if (person) openModal("photo", person);
+      });
 
       document.getElementById("download-all-excel-btn").addEventListener("click", async () => {
         const d = excelDateInput.value || today;
         await loadDataForDate(d);
-        const rows = getCombinedRows(d).map((r, i) => [
-          i + 1, "GMS HARIPURA 1 TO 8", r.category, r.name, r.fatherName, r.className, r.rollNo, r.date, r.status
+        const rows = visibleRows(d, false).map((r, i) => [
+          i + 1, "GMS HARIPURA 1 TO 8", r.name, r.fatherName, r.className, r.rollNo, r.date, r.status
         ]);
+        if (!rows.length) { regStatusMsg.textContent = "डाउनलोड के लिए कोई रिकॉर्ड नहीं है।"; return; }
+        const tag = classSelect.value === "all" ? "All-Classes" : `Class-${classSelect.value}`;
         downloadExcelCsv(
-          `GMS-Haripura-Attendance-${d}.csv`,
-          ["Sr. No.", "School", "Category", "Name", "Father Name", "Class", "Roll No.", "Date", "Status"],
+          `GMS-Haripura-Attendance-${tag}-${d}.csv`,
+          ["Sr. No.", "School", "Name", "Father Name", "Class", "Roll No.", "Date", "Status"],
           rows
         );
       });
