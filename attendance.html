@@ -237,6 +237,11 @@
       .data-table td.cell-actions::before { content: none; }
       .data-table td.cell-actions .btn { width: 100%; }
     }
+    .act-wrap { display: flex; gap: 6px; flex-wrap: wrap; }
+    .btn-warn { background: #fdebd0; color: #8a4b00; }
+    @media (max-width: 700px) {
+      .act-wrap { flex-direction: column; width: 100%; }
+    }
     .cam-btns { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
     .att-flash {
       position: absolute; left: 10px; right: 10px; bottom: 12px; z-index: 3; text-align: center;
@@ -315,6 +320,14 @@
         </div>
         <div class="side-btn-group">
           <button type="button" id="start-student-att-btn" class="btn btn-primary full-width">बच्चों की उपस्थिति ले</button>
+        </div>
+        <div>
+          <label for="strict-select" style="display:block;font-weight:600;font-size:.92rem;margin-bottom:5px;color:var(--ink-soft)">पहचान की सख्ती</label>
+          <select id="strict-select">
+            <option value="loose">कम — तेज़, पर गलत पहचान की संभावना ज़्यादा</option>
+            <option value="mid">मध्यम — सुझाया गया</option>
+            <option value="strict">ज़्यादा — सबसे सुरक्षित, थोड़ा धीमा</option>
+          </select>
         </div>
         <div class="stats">
           <div class="stat">
@@ -569,7 +582,8 @@
         studentsCache = stuSnap.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-          descriptor: new Float32Array(doc.data().descriptor)
+          descriptor: new Float32Array(doc.data().descriptor),
+          descriptors: (doc.data().descriptors || [doc.data().descriptor]).map((d) => new Float32Array(d))
         }));
         presentStudentIds = new Set((attDoc.exists ? attDoc.data().students : []) || []);
         renderTable(targetDate);
@@ -646,7 +660,10 @@
             <td data-label="क्रमांक">${esc(r.rollNo)}</td>
             <td data-label="तारीख">${esc(r.date)}</td>
             <td data-label="स्थिति"><span class="${isPresent ? "badge-present" : "badge-absent"}">${isPresent ? "उपस्थित" : "अनुपस्थित"}</span></td>
-            <td class="cell-actions"><button type="button" class="btn btn-secondary btn-sm" data-act="photo" data-id="${esc(r.id)}">📷 फोटो बदलें</button></td>
+            <td class="cell-actions"><div class="act-wrap">
+              <button type="button" class="btn ${isPresent ? "btn-warn" : "btn-primary"} btn-sm" data-act="toggle" data-id="${esc(r.id)}">${isPresent ? "✖ उपस्थिति हटाएँ" : "✔ उपस्थित करें"}</button>
+              <button type="button" class="btn btn-secondary btn-sm" data-act="photo" data-id="${esc(r.id)}">📷 फोटो बदलें</button>
+            </div></td>
           </tr>`;
         }).join("");
       }
@@ -782,12 +799,18 @@
           cameraFeedback.textContent = "पहले ऊपर से बच्चे ऐड करें।";
           return;
         }
-        const matcher = new faceapi.FaceMatcher(
-          candidates.map((item) => new faceapi.LabeledFaceDescriptors(item.id, [item.descriptor])),
-          0.55
-        );
+        // सख्ती: t = अधिकतम दूरी, m = पहले और दूसरे सबसे मिलते बच्चे के बीच न्यूनतम अंतर
+        const levels = { loose: { t: 0.52, m: 0.04 }, mid: { t: 0.47, m: 0.06 }, strict: { t: 0.42, m: 0.08 } };
+        const strictSel = document.getElementById("strict-select");
+        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.55 });
+        const distTo = (desc, p) => {
+          const list = p.descriptors && p.descriptors.length ? p.descriptors : [p.descriptor];
+          const ds = list.map((d) => faceDist(desc, d)).sort((a, b) => a - b);
+          return ds.length > 1 ? (ds[0] + ds[1]) / 2 : ds[0];
+        };
 
         let busy = false;
+        let track = { id: null, count: 0 };
         scanInterval = setInterval(async () => {
           if (busy) return;
           if (!attVideo.videoWidth || !attVideo.videoHeight) return;
@@ -795,53 +818,76 @@
           try {
             attOverlay.width = attVideo.videoWidth;
             attOverlay.height = attVideo.videoHeight;
-
-            const detections = await faceapi
-              .detectAllFaces(attVideo, new faceapi.TinyFaceDetectorOptions())
-              .withFaceLandmarks()
-              .withFaceDescriptors();
-
             const ctx = attOverlay.getContext("2d");
             ctx.clearRect(0, 0, attOverlay.width, attOverlay.height);
 
-            for (const det of faceapi.resizeResults(detections, { width: attOverlay.width, height: attOverlay.height })) {
-              const match = matcher.findBestMatch(det.descriptor);
-              const box = det.detection.box;
-              ctx.strokeStyle = match.label !== "unknown" ? "#16a34a" : "#dc2626";
-              ctx.lineWidth = 3;
-              ctx.strokeRect(box.x, box.y, box.width, box.height);
+            const detections = await faceapi.detectAllFaces(attVideo, opts).withFaceLandmarks().withFaceDescriptors();
 
-              if (match.label === "unknown") continue;
-              const person = candidates.find((p) => p.id === match.label);
-              if (!person) continue;
-
-              const set = presentStudentIds;
-              if (set.has(person.id)) {
-                cameraFeedback.textContent = `पहले से उपस्थित: ${person.name}`;
-                announce(person, "dup");
-                continue;
-              }
-              set.add(person.id);
-              try {
-                await db.collection("attendance").doc(today).set({
-                  date: today,
-                  students: firebase.firestore.FieldValue.arrayUnion(person.id)
-                }, { merge: true });
-                cameraFeedback.textContent = `उपस्थित दर्ज: ${person.name}`;
-                announce(person, "new");
-              } catch (err) {
-                set.delete(person.id);
-                cameraFeedback.textContent = "उपस्थिति सेव नहीं हो सकी, इंटरनेट जाँचें।";
-                announce(person, "err");
-              }
-              if (excelDateInput.value === today) renderTable(today);
+            // सिर्फ़ कैमरे के सबसे पास वाले (सबसे बड़े) चेहरे की उपस्थिति लगेगी
+            const faces = detections
+              .filter((d) => d.detection.box.width >= attVideo.videoWidth * 0.16)
+              .sort((a, b) => b.detection.box.area - a.detection.box.area);
+            if (!faces.length) {
+              track = { id: null, count: 0 };
+              if (detections.length) cameraFeedback.textContent = "कैमरे के थोड़ा पास आइए।";
+              return;
             }
+
+            const det = faces[0];
+            const box = det.detection.box;
+            const { t, m } = levels[strictSel.value] || levels.mid;
+            const ranked = candidates.map((p) => ({ p, d: distTo(det.descriptor, p) })).sort((a, b) => a.d - b.d);
+            const best = ranked[0], second = ranked[1];
+            const ok = best.d <= t && (!second || second.d - best.d >= m);
+
+            ctx.strokeStyle = ok ? "#16a34a" : best.d <= t ? "#e8890c" : "#dc2626";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+            if (!ok) {
+              track = { id: null, count: 0 };
+              cameraFeedback.textContent = best.d <= t
+                ? "पहचान पक्की नहीं हो रही, सीधे कैमरे की ओर देखें।"
+                : "चेहरा पहचान में नहीं आया।";
+              return;
+            }
+
+            // एक ही बच्चा लगातार कई बार पहचाना जाए, तभी उपस्थिति लगेगी
+            const person = best.p;
+            if (track.id === person.id) track.count++; else track = { id: person.id, count: 1 };
+            const need = best.d <= t - 0.08 ? 2 : 3;
+            if (track.count < need) {
+              cameraFeedback.textContent = `पहचान रहे हैं: ${person.name} (${track.count}/${need})`;
+              return;
+            }
+
+            const set = presentStudentIds;
+            if (set.has(person.id)) {
+              cameraFeedback.textContent = `पहले से उपस्थित: ${person.name}`;
+              announce(person, "dup");
+              return;
+            }
+            set.add(person.id);
+            try {
+              await db.collection("attendance").doc(today).set({
+                date: today,
+                students: firebase.firestore.FieldValue.arrayUnion(person.id)
+              }, { merge: true });
+              cameraFeedback.textContent = `उपस्थित दर्ज: ${person.name}`;
+              announce(person, "new");
+            } catch (err) {
+              set.delete(person.id);
+              cameraFeedback.textContent = "उपस्थिति सेव नहीं हो सकी, इंटरनेट जाँचें।";
+              announce(person, "err");
+            }
+            track = { id: null, count: 0 };
+            if (excelDateInput.value === today) renderTable(today);
           } catch (err) {
             console.error(err);
           } finally {
             busy = false;
           }
-        }, 900);
+        }, 450);
       }
 
       async function openModal(type, person) {
@@ -878,26 +924,44 @@
         modalBackdrop.classList.add("hidden");
       }
 
-      async function captureDescriptor() {
+      async function captureSamples() {
         if (!(await ensureModels())) throw new Error(MODEL_ERR);
         const vw = modalVideo.videoWidth, vh = modalVideo.videoHeight;
         modalOverlay.width = vw;
         modalOverlay.height = vh;
-        const det = await faceapi
-          .detectSingleFace(modalVideo, new faceapi.TinyFaceDetectorOptions())
-          .withFaceLandmarks()
-          .withFaceDescriptor();
-        if (!det) throw new Error("चेहरा स्पष्ट नहीं दिखा, सीधे कैमरे की ओर देखें।");
+        const opts = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.55 });
+        const samples = [];
+        let bestScore = 0, photo = "";
 
-        // चेहरे के आसपास का छोटा फोटो (160×160)
-        const b = det.detection.box;
-        const side = Math.min(Math.max(b.width, b.height) * 1.7, vw, vh);
-        const sx = Math.max(0, Math.min(vw - side, b.x + b.width / 2 - side / 2));
-        const sy = Math.max(0, Math.min(vh - side, b.y + b.height / 2 - side / 2));
-        const c = document.createElement("canvas");
-        c.width = c.height = 160;
-        c.getContext("2d").drawImage(modalVideo, sx, sy, side, side, 0, 0, 160, 160);
-        return { descriptor: Array.from(det.descriptor), photo: c.toDataURL("image/jpeg", 0.7) };
+        for (let i = 0; i < 12 && samples.length < 4; i++) {
+          const det = await faceapi.detectSingleFace(modalVideo, opts).withFaceLandmarks().withFaceDescriptor();
+          if (det && det.detection.box.width >= vw * 0.18) {
+            samples.push(det.descriptor);
+            if (det.detection.score > bestScore) {
+              bestScore = det.detection.score;
+              const b = det.detection.box;
+              const side = Math.min(Math.max(b.width, b.height) * 1.7, vw, vh);
+              const sx = Math.max(0, Math.min(vw - side, b.x + b.width / 2 - side / 2));
+              const sy = Math.max(0, Math.min(vh - side, b.y + b.height / 2 - side / 2));
+              const c = document.createElement("canvas");
+              c.width = c.height = 160;
+              c.getContext("2d").drawImage(modalVideo, sx, sy, side, side, 0, 0, 160, 160);
+              photo = c.toDataURL("image/jpeg", 0.7);
+            }
+          }
+          modalFeedback.textContent = `फोटो ले रहे हैं... ${samples.length}/4 (सीधे कैमरे की ओर देखते रहें)`;
+          await new Promise((r) => setTimeout(r, 350));
+        }
+        if (samples.length < 3) throw new Error("चेहरा स्पष्ट नहीं दिखा या बहुत दूर है। थोड़ा पास आकर सीधे कैमरे की ओर देखें।");
+
+        let maxD = 0;
+        for (let i = 0; i < samples.length; i++)
+          for (let j = i + 1; j < samples.length; j++) maxD = Math.max(maxD, faceDist(samples[i], samples[j]));
+        if (maxD > 0.55) throw new Error("चेहरा हिल गया या अलग-अलग चेहरे दिखे। स्थिर खड़े होकर दोबारा कोशिश करें।");
+
+        const mean = new Array(samples[0].length).fill(0);
+        samples.forEach((sm) => sm.forEach((v, k) => { mean[k] += v / samples.length; }));
+        return { descriptor: mean, descriptors: samples.map((sm) => Array.from(sm)), photo };
       }
 
       // ---- डुप्लीकेट रोकना ----
@@ -933,14 +997,14 @@
             return;
           }
           modalFeedback.textContent = "चेहरा सेव हो रहा है...";
-          const { descriptor, photo } = await captureDescriptor();
+          const { descriptor, descriptors, photo } = await captureSamples();
           const same = findSameFace(descriptor);
           if (same) {
             modalFeedback.textContent = `यह चेहरा पहले से रजिस्टर है: ${same.name}।`;
             return;
           }
-          const ref = await db.collection("students").add({ name, fatherName, class: studentClass, rollNo, descriptor, photo });
-          studentsCache.push({ id: ref.id, name, fatherName, class: studentClass, rollNo, photo, descriptor: new Float32Array(descriptor) });
+          const ref = await db.collection("students").add({ name, fatherName, class: studentClass, rollNo, descriptor, descriptors, photo });
+          studentsCache.push({ id: ref.id, name, fatherName, class: studentClass, rollNo, photo, descriptor: new Float32Array(descriptor), descriptors: descriptors.map((d) => new Float32Array(d)) });
           studentForm.reset();
           regStatusMsg.textContent = `बच्चा जुड़ गया: ${name}`;
           renderTable(excelDateInput.value || today);
@@ -960,15 +1024,15 @@
         btns.forEach((b) => { b.disabled = true; });
         try {
           modalFeedback.textContent = "नया फोटो सेव हो रहा है...";
-          const { descriptor, photo } = await captureDescriptor();
+          const { descriptor, descriptors, photo } = await captureSamples();
           const same = findSameFace(descriptor, photoTarget.id);
           if (same) {
             modalFeedback.textContent = `यह चेहरा किसी और बच्चे (${same.name}) से मिलता है। सही बच्चे को कैमरे के सामने रखें।`;
             return;
           }
-          await db.collection("students").doc(photoTarget.id).update({ descriptor, photo });
+          await db.collection("students").doc(photoTarget.id).update({ descriptor, descriptors, photo });
           const cached = studentsCache.find((x) => x.id === photoTarget.id);
-          if (cached) { cached.descriptor = new Float32Array(descriptor); cached.photo = photo; }
+          if (cached) { cached.descriptor = new Float32Array(descriptor); cached.descriptors = descriptors.map((d) => new Float32Array(d)); cached.photo = photo; }
           regStatusMsg.textContent = `${photoTarget.name} का फोटो बदल गया।`;
           renderTable(excelDateInput.value || today);
           closeModal();
@@ -1063,11 +1127,31 @@
         classSelect.value = b.dataset.class;
         rerender();
       });
-      reportTbody.addEventListener("click", (e) => {
-        const b = e.target.closest('button[data-act="photo"]');
+      reportTbody.addEventListener("click", async (e) => {
+        const b = e.target.closest("button[data-act]");
         if (!b) return;
         const person = studentsCache.find((x) => x.id === b.dataset.id);
-        if (person) openModal("photo", person);
+        if (!person) return;
+        if (b.dataset.act === "photo") { openModal("photo", person); return; }
+
+        // हाथ से उपस्थिति लगाना / हटाना (गलत पहचान सुधारने के लिए)
+        const d = excelDateInput.value || today;
+        const wasPresent = presentStudentIds.has(person.id);
+        b.disabled = true;
+        try {
+          await db.collection("attendance").doc(d).set({
+            date: d,
+            students: wasPresent
+              ? firebase.firestore.FieldValue.arrayRemove(person.id)
+              : firebase.firestore.FieldValue.arrayUnion(person.id)
+          }, { merge: true });
+          if (wasPresent) presentStudentIds.delete(person.id); else presentStudentIds.add(person.id);
+          regStatusMsg.textContent = wasPresent ? `${person.name} की उपस्थिति हटा दी गई।` : `${person.name} को उपस्थित कर दिया गया।`;
+          renderTable(d);
+        } catch (err) {
+          regStatusMsg.textContent = "बदलाव सेव नहीं हो सका, इंटरनेट जाँचें।";
+          b.disabled = false;
+        }
       });
 
       document.getElementById("download-all-excel-btn").addEventListener("click", async () => {
@@ -1084,6 +1168,11 @@
           rows
         );
       });
+
+      const strictSel = document.getElementById("strict-select");
+      try { strictSel.value = localStorage.getItem("att-strict") || "mid"; } catch (e) { strictSel.value = "mid"; }
+      if (!strictSel.value) strictSel.value = "mid";
+      strictSel.addEventListener("change", () => { try { localStorage.setItem("att-strict", strictSel.value); } catch (e) {} });
 
       loadDataForDate(today);
     }
