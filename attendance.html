@@ -583,7 +583,7 @@
           id: doc.id,
           ...doc.data(),
           descriptor: new Float32Array(doc.data().descriptor),
-          descriptors: (doc.data().descriptors || [doc.data().descriptor]).map((d) => new Float32Array(d))
+          descriptors: (doc.data().descriptors || [doc.data().descriptor]).map((d) => new Float32Array(Array.isArray(d) ? d : d.v))
         }));
         presentStudentIds = new Set((attDoc.exists ? attDoc.data().students : []) || []);
         renderTable(targetDate);
@@ -1003,7 +1003,7 @@
             modalFeedback.textContent = `यह चेहरा पहले से रजिस्टर है: ${same.name}।`;
             return;
           }
-          const ref = await db.collection("students").add({ name, fatherName, class: studentClass, rollNo, descriptor, descriptors, photo });
+          const ref = await db.collection("students").add({ name, fatherName, class: studentClass, rollNo, descriptor, descriptors: descriptors.map((v) => ({ v })), photo });
           studentsCache.push({ id: ref.id, name, fatherName, class: studentClass, rollNo, photo, descriptor: new Float32Array(descriptor), descriptors: descriptors.map((d) => new Float32Array(d)) });
           studentForm.reset();
           regStatusMsg.textContent = `बच्चा जुड़ गया: ${name}`;
@@ -1030,7 +1030,7 @@
             modalFeedback.textContent = `यह चेहरा किसी और बच्चे (${same.name}) से मिलता है। सही बच्चे को कैमरे के सामने रखें।`;
             return;
           }
-          await db.collection("students").doc(photoTarget.id).update({ descriptor, descriptors, photo });
+          await db.collection("students").doc(photoTarget.id).update({ descriptor, descriptors: descriptors.map((v) => ({ v })), photo });
           const cached = studentsCache.find((x) => x.id === photoTarget.id);
           if (cached) { cached.descriptor = new Float32Array(descriptor); cached.descriptors = descriptors.map((d) => new Float32Array(d)); cached.photo = photo; }
           regStatusMsg.textContent = `${photoTarget.name} का फोटो बदल गया।`;
