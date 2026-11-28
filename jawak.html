@@ -12,6 +12,7 @@
 
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script defer src="firebase-config.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -119,7 +120,7 @@
     .check { display: flex; align-items: center; gap: 10px; font-weight: 600; margin: 0; }
     .check input { width: 22px; height: 22px; accent-color: var(--teal); flex: none; }
     .action-row { display: grid; grid-template-columns: 1fr; gap: 10px; }
-    @media (min-width: 600px) { .action-row { grid-template-columns: 1fr 1fr 1fr; } }
+    @media (min-width: 600px) { .action-row { grid-template-columns: 1fr 1fr; } }
     .msg { font-size: 0.95rem; font-weight: 600; border-radius: 10px; padding: 9px 12px; background: var(--tint); color: var(--ink-soft); }
     .msg:empty { display: none; }
     .msg.ok { background: #dcf5e7; color: #0f5f38; }
@@ -134,10 +135,62 @@
     .a4-meta { display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; margin-bottom: 18px; }
     .a4 .letter-body { font-size: 16px; }
 
+
+    /* ---------- सेव / रजिस्टर ---------- */
+    .banner { background: #fdf0dc; color: #8a4b00; border: 1px solid #f3d9a8; border-radius: 10px; padding: 9px 12px; font-weight: 700; font-size: 0.95rem; }
+    .reg-head { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+    .reg-head h2 { font-size: 1.15rem; }
+    .reg-head .hint { font-size: 0.92rem; color: var(--muted); }
+    .filters { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    @media (min-width: 600px) { .filters { grid-template-columns: 1fr 200px; } }
+    .filters input { width: 100%; min-height: 44px; padding: 9px 12px; border: 1.5px solid #c8d1e2; border-radius: 10px; font: inherit; font-size: 1rem; background: #fff; color: var(--ink); }
+    .filters input:focus { border-color: var(--teal); outline: 3px solid rgba(15, 118, 110, 0.2); outline-offset: 0; }
+    .count-chip { display: inline-block; background: #e6eefb; color: #1e3f7a; border-radius: 999px; padding: 2px 12px; font-size: 0.88rem; font-weight: 700; }
+
+    .table-responsive { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; background: #fff; }
+    .data-table th, .data-table td { padding: 11px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+    .data-table th { background: var(--ink); color: #fff; font-weight: 700; font-size: 0.88rem; white-space: nowrap; }
+    .data-table tbody tr:nth-child(even) { background: var(--tint); }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .cell-no { font-weight: 800; white-space: nowrap; }
+    .cell-actions { white-space: nowrap; }
+    .cell-actions .btn { margin-right: 6px; }
+    .empty-cell { text-align: center !important; color: var(--muted); padding: 28px 12px !important; }
+    @media (max-width: 700px) {
+      .table-responsive { border: none; overflow: visible; }
+      .data-table, .data-table tbody { display: block; background: transparent; }
+      .data-table thead { display: none; }
+      .data-table tbody tr { display: block; background: #fff !important; border: 1px solid var(--line); border-radius: 12px; padding: 4px 14px 10px; margin-bottom: 10px; }
+      .data-table td { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; padding: 8px 0; border-bottom: 1px dashed var(--line); text-align: right; }
+      .data-table td:last-child { border-bottom: none; padding-bottom: 0; justify-content: stretch; }
+      .data-table td::before { content: attr(data-label); color: var(--muted); font-size: 0.85rem; font-weight: 600; text-align: left; flex: none; }
+      .data-table td.cell-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .data-table td.cell-actions::before { content: none; }
+      .cell-actions .btn { margin: 0; width: 100%; padding: 7px 4px; }
+      .data-table tr.empty-row td { display: block; text-align: center; }
+      .data-table tr.empty-row td::before { content: none; }
+    }
+
+    /* देखने की विंडो */
+    .modal { position: fixed; inset: 0; background: rgba(13, 22, 38, 0.7); display: flex; justify-content: center; align-items: flex-end; z-index: 999; }
+    .modal-card { background: #eef1f6; width: 100%; max-width: 860px; max-height: 94vh; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 14px 12px calc(14px + env(safe-area-inset-bottom, 0px)); }
+    @media (min-width: 700px) { .modal { align-items: center; padding: 16px; } .modal-card { border-radius: 18px; padding: 18px; } }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .modal-head h3 { font-size: 1.15rem; }
+    .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    @media (min-width: 600px) { .modal-actions { grid-template-columns: repeat(3, 1fr); } }
+    .view-sheet { background: #fff; color: #000; border: 1px solid #cfd6e4; border-radius: 6px; padding: 20px 16px 24px; font-family: "Mukta", "Noto Sans Devanagari", sans-serif; }
+    @media (min-width: 700px) { .view-sheet { padding: 36px 44px 40px; } }
+    .view-sheet .a4-name { font-size: 1.4rem; }
+    @media (min-width: 700px) { .view-sheet .a4-name { font-size: 1.8rem; } }
+    .view-sheet .a4-line { font-size: 0.98rem; }
+    .view-sheet .a4-meta { font-size: 1rem; flex-wrap: wrap; gap: 6px 20px; }
+
     @page { size: A4; margin: 0; }
     @media print {
       body { background: #fff; padding: 0; }
-      .topbar, .container { display: none !important; }
+      .topbar, .container, .modal { display: none !important; }
       #print-root { position: static !important; left: auto !important; width: 210mm !important; }
       .a4 { width: 210mm; min-height: 296mm; padding: 16mm 16mm 18mm; }
       .letter-body tr { break-inside: avoid; }
@@ -213,16 +266,58 @@
       <div id="editor" class="letter-body" contenteditable="true" data-placeholder="यहाँ जावक का विवरण या एप्लीकेशन लिखें..." spellcheck="false"></div>
     </section>
 
-    <!-- डाउनलोड / प्रिंट -->
+    <!-- सेव / डाउनलोड / प्रिंट -->
     <section class="card opts">
+      <div id="edit-banner" class="banner hidden"></div>
       <label class="check"><input type="checkbox" id="only-body" /> केवल विवरण/एप्लीकेशन छापें (स्कूल का नाम, क्रमांक और दिनांक के बिना)</label>
       <div class="action-row">
+        <button type="button" id="save-btn" class="btn btn-primary">जावक सेव करें</button>
         <button type="button" id="pdf-btn" class="btn btn-success">PDF डाउनलोड (A4)</button>
-        <button type="button" id="print-btn" class="btn btn-primary">प्रिंट करें</button>
+        <button type="button" id="print-btn" class="btn btn-light">प्रिंट करें</button>
         <button type="button" id="new-btn" class="btn btn-light">नया जावक</button>
       </div>
       <p id="msg" class="msg" role="status"></p>
     </section>
+
+    <!-- भेजी जा चुकी जावक -->
+    <section class="card" id="register">
+      <div class="reg-head">
+        <div>
+          <h2>भेजी जा चुकी जावक <span id="reg-count" class="count-chip">0</span></h2>
+          <p class="hint">सेव की गई सभी जावक यहाँ दिखती हैं। देखने, बदलने या हटाने के लिए बटन दबाएँ।</p>
+        </div>
+        <div class="filters">
+          <input type="search" id="reg-search" placeholder="क्रमांक या विवरण से खोजें" aria-label="खोजें" />
+          <input type="month" id="reg-month" aria-label="महीना चुनें" />
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr><th>क्रमांक</th><th>दिनांक</th><th>विवरण</th><th></th></tr>
+          </thead>
+          <tbody id="reg-tbody">
+            <tr class="empty-row"><td colspan="4" class="empty-cell">डेटा लोड हो रहा है...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- जावक देखें -->
+    <div id="view-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="जावक देखें">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h3>जावक देखें</h3>
+          <button type="button" id="v-close" class="btn btn-light btn-sm">बंद करें</button>
+        </div>
+        <div id="v-body"></div>
+        <div class="modal-actions">
+          <button type="button" id="v-pdf" class="btn btn-success">PDF डाउनलोड</button>
+          <button type="button" id="v-print" class="btn btn-light">प्रिंट करें</button>
+          <button type="button" id="v-edit" class="btn btn-primary">बदलाव करें</button>
+        </div>
+      </div>
+    </div>
   </main>
 
   <div id="print-root" aria-hidden="true"></div>
@@ -440,48 +535,65 @@
         if (confirm("पूरी टेबल हटानी है?")) { cell.closest("table").remove(); savedRange = null; persist(); }
       });
 
-      // ---- नया जावक ----
-      $("new-btn").addEventListener("click", () => {
-        if (!confirm("नया जावक शुरू करें? क्रमांक और विवरण साफ़ हो जाएँगे।")) return;
-        $("f-no").value = "";
-        $("f-date").value = todayISO();
-        editor.innerHTML = "";
-        savedRange = null;
-        persist();
-        say("नया जावक तैयार है।", "ok");
-      });
+      // ---- सुरक्षित HTML ----
+      function clean(html) {
+        const t = document.createElement("template");
+        t.innerHTML = html || "";
+        t.content.querySelectorAll("script,style,iframe,object,embed,link,meta,form").forEach((n) => n.remove());
+        t.content.querySelectorAll("*").forEach((n) => {
+          [...n.attributes].forEach((a) => {
+            const v = a.value.trim().toLowerCase();
+            if (a.name.startsWith("on") || v.startsWith("javascript:")) n.removeAttribute(a.name);
+          });
+        });
+        return t.innerHTML;
+      }
+      const plain = (html) => {
+        const t = document.createElement("template");
+        t.innerHTML = html || "";
+        return (t.content.textContent || "").replace(/\s+/g, " ").trim();
+      };
 
-      // ---- A4 कॉपी बनाना ----
-      function buildPage() {
-        const onlyBody = $("only-body").checked;
-        const body = editor.innerHTML.trim();
-        if (!body || editor.textContent.trim() === "" && !editor.querySelector("table")) {
-          say("पहले जावक का विवरण लिखें।", "err");
-          return false;
-        }
-        say("");
-        const head = onlyBody ? "" : `
-          <div class="a4-name">${esc(nameEl.value.trim())}</div>
-          <div class="a4-line">डाइस कोड : ${esc($("f-dise").value.trim())}</div>
-          <div class="a4-line">ई-मेल : ${esc($("f-email").value.trim())}</div>
+      // ---- फॉर्म का डेटा ----
+      function formData() {
+        return {
+          no: $("f-no").value.trim(),
+          date: $("f-date").value,
+          name: nameEl.value.trim(),
+          dise: $("f-dise").value.trim(),
+          email: $("f-email").value.trim(),
+          body: editor.innerHTML.trim(),
+          onlyBody: $("only-body").checked
+        };
+      }
+      function hasContent() {
+        return editor.textContent.trim() !== "" || !!editor.querySelector("table");
+      }
+      function letterInner(d) {
+        const head = d.onlyBody ? "" : `
+          <div class="a4-name">${esc(d.name)}</div>
+          <div class="a4-line">डाइस कोड : ${esc(d.dise)}</div>
+          <div class="a4-line">ई-मेल : ${esc(d.email)}</div>
           <div class="a4-rule"></div>
           <div class="a4-meta">
-            <span>जावक क्रमांक : ${esc($("f-no").value.trim())}</span>
-            <span>दिनांक : ${esc(fmtDate($("f-date").value))}</span>
+            <span>जावक क्रमांक : ${esc(d.no)}</span>
+            <span>दिनांक : ${esc(fmtDate(d.date))}</span>
           </div>`;
-        $("print-root").innerHTML = `<div class="a4">${head}<div class="letter-body">${body}</div></div>`;
-        return true;
+        return `${head}<div class="letter-body">${clean(d.body)}</div>`;
       }
 
-      $("print-btn").addEventListener("click", () => { if (buildPage()) window.print(); });
-
-      $("pdf-btn").addEventListener("click", async () => {
-        if (!buildPage()) return;
+      // ---- प्रिंट व PDF ----
+      function doPrint(d) {
+        $("print-root").innerHTML = `<div class="a4">${letterInner(d)}</div>`;
+        window.print();
+      }
+      async function doPdf(d, btn) {
         if (!window.html2canvas || !window.jspdf) {
           say("PDF टूल लोड नहीं हुआ। इंटरनेट जाँचकर पेज रीफ्रेश करें, या 'प्रिंट करें' से PDF सेव करें।", "err");
           return;
         }
-        const btn = $("pdf-btn"), label = btn.textContent;
+        $("print-root").innerHTML = `<div class="a4">${letterInner(d)}</div>`;
+        const label = btn.textContent;
         btn.disabled = true;
         btn.textContent = "PDF बन रही है...";
         try {
@@ -510,8 +622,8 @@
             if (i > 0) pdf.addPage();
             pdf.addImage(c.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, pageW, Math.min(pageH, c.height / ratio));
           }
-          const no = $("f-no").value.trim().replace(/[^\w\u0900-\u097F-]+/g, "-") || "jawak";
-          pdf.save(`Jawak-${no}-${$("f-date").value}.pdf`);
+          const no = (d.no || "jawak").replace(/[^\w\u0900-\u097F-]+/g, "-");
+          pdf.save(`Jawak-${no}-${d.date || ""}.pdf`);
           say("PDF डाउनलोड हो गई।", "ok");
         } catch (err) {
           console.error(err);
@@ -520,7 +632,197 @@
           btn.disabled = false;
           btn.textContent = label;
         }
+      }
+      function needBody() {
+        if (!hasContent()) { say("पहले जावक का विवरण लिखें।", "err"); return false; }
+        say("");
+        return true;
+      }
+      $("print-btn").addEventListener("click", () => { if (needBody()) doPrint(formData()); });
+      $("pdf-btn").addEventListener("click", () => { if (needBody()) doPdf(formData(), $("pdf-btn")); });
+
+      // ---- Firebase: सेव व रजिस्टर ----
+      let records = [];
+      let currentId = null;
+      let viewing = null;
+      const haveDb = () => typeof db !== "undefined";
+      function errText(err) {
+        if (err && err.code === "permission-denied") return "Firebase में 'jawak' कलेक्शन की अनुमति (Rules) नहीं है। Firestore Rules में jawak जोड़ें।";
+        return "कुछ गड़बड़ हुई, इंटरनेट जाँचकर दोबारा कोशिश करें।";
+      }
+
+      function setEditUI() {
+        const b = $("edit-banner");
+        if (currentId) {
+          const r = records.find((x) => x.id === currentId);
+          b.textContent = `बदलाव मोड : जावक क्रमांक ${r ? r.no : $("f-no").value} (सेव करने पर यही जावक अपडेट होगी)`;
+          b.classList.remove("hidden");
+          $("save-btn").textContent = "बदलाव सेव करें";
+        } else {
+          b.classList.add("hidden");
+          $("save-btn").textContent = "जावक सेव करें";
+        }
+      }
+
+      function updateNextHint() {
+        const nums = records.map((r) => parseInt(r.no, 10)).filter((n) => !isNaN(n));
+        $("f-no").placeholder = nums.length ? `अगला: ${Math.max(...nums) + 1}` : "जैसे: 1";
+      }
+
+      async function loadRecords() {
+        const tb = $("reg-tbody");
+        if (!haveDb()) {
+          tb.innerHTML = `<tr class="empty-row"><td colspan="4" class="empty-cell">Firebase से कनेक्शन नहीं है।</td></tr>`;
+          return;
+        }
+        try {
+          const snap = await db.collection("jawak").orderBy("date", "desc").limit(500).get();
+          records = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => {
+            if (a.date !== b.date) return (b.date || "").localeCompare(a.date || "");
+            return (parseInt(b.no, 10) || 0) - (parseInt(a.no, 10) || 0);
+          });
+          updateNextHint();
+          renderRegister();
+          setEditUI();
+        } catch (err) {
+          console.error(err);
+          tb.innerHTML = `<tr class="empty-row"><td colspan="4" class="empty-cell">${esc(errText(err))}</td></tr>`;
+        }
+      }
+
+      function renderRegister() {
+        const q = $("reg-search").value.trim().toLowerCase();
+        const m = $("reg-month").value;
+        const list = records.filter((r) => {
+          if (m && !(r.date || "").startsWith(m)) return false;
+          if (!q) return true;
+          return String(r.no).toLowerCase().includes(q) || plain(r.body).toLowerCase().includes(q);
+        });
+        $("reg-count").textContent = (q || m) ? `${list.length} / ${records.length}` : String(records.length);
+        const tb = $("reg-tbody");
+        if (!list.length) {
+          tb.innerHTML = `<tr class="empty-row"><td colspan="4" class="empty-cell">${records.length ? "कोई जावक नहीं मिली।" : "अभी कोई जावक सेव नहीं हुई है।"}</td></tr>`;
+          return;
+        }
+        tb.innerHTML = list.map((r) => {
+          const txt = plain(r.body);
+          const snip = txt.length > 90 ? txt.slice(0, 90) + "…" : (txt || "(तालिका)");
+          return `
+          <tr>
+            <td data-label="क्रमांक" class="cell-no">${esc(r.no)}</td>
+            <td data-label="दिनांक">${esc(fmtDate(r.date))}</td>
+            <td data-label="विवरण">${esc(snip)}</td>
+            <td class="cell-actions">
+              <button type="button" class="btn btn-primary btn-sm" data-act="view" data-id="${esc(r.id)}">देखें</button>
+              <button type="button" class="btn btn-light btn-sm" data-act="edit" data-id="${esc(r.id)}">बदलें</button>
+              <button type="button" class="btn btn-danger-soft btn-sm" data-act="del" data-id="${esc(r.id)}">हटाएँ</button>
+            </td>
+          </tr>`;
+        }).join("");
+      }
+
+      function loadIntoForm(r) {
+        currentId = r.id;
+        $("f-no").value = r.no || "";
+        $("f-date").value = r.date || todayISO();
+        nameEl.value = r.name || DEFAULTS.name;
+        $("f-dise").value = r.dise || DEFAULTS.dise;
+        $("f-email").value = r.email || DEFAULTS.email;
+        editor.innerHTML = clean(r.body);
+        $("only-body").checked = !!r.onlyBody;
+        savedRange = null;
+        fitName();
+        persist();
+        setEditUI();
+        say("");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      $("save-btn").addEventListener("click", async () => {
+        if (!haveDb()) { say("Firebase से कनेक्शन नहीं है।", "err"); return; }
+        const d = formData();
+        if (!d.no) { say("जावक क्रमांक लिखें।", "err"); $("f-no").focus(); return; }
+        if (!d.date) { say("दिनांक चुनें।", "err"); return; }
+        if (!hasContent()) { say("पहले जावक का विवरण लिखें।", "err"); return; }
+        const dup = records.find((r) => String(r.no) === d.no && r.id !== currentId);
+        if (dup && !confirm(`क्रमांक ${d.no} पहले से दर्ज है (दिनांक ${fmtDate(dup.date)})। फिर भी सेव करें?`)) return;
+
+        const btn = $("save-btn");
+        btn.disabled = true;
+        try {
+          const ts = firebase.firestore.FieldValue.serverTimestamp();
+          const payload = { ...d, updatedAt: ts };
+          if (currentId) {
+            await db.collection("jawak").doc(currentId).update(payload);
+          } else {
+            payload.createdAt = ts;
+            payload.createdBy = (typeof auth !== "undefined" && auth.currentUser && auth.currentUser.email) || "";
+            const ref = await db.collection("jawak").add(payload);
+            currentId = ref.id;
+          }
+          await loadRecords();
+          say(`जावक क्रमांक ${d.no} सेव हो गई।`, "ok");
+        } catch (err) {
+          console.error(err);
+          say(errText(err), "err");
+        } finally {
+          btn.disabled = false;
+        }
       });
+
+      $("reg-tbody").addEventListener("click", async (e) => {
+        const b = e.target.closest("button[data-act]");
+        if (!b) return;
+        const r = records.find((x) => x.id === b.dataset.id);
+        if (!r) return;
+        if (b.dataset.act === "view") openView(r);
+        else if (b.dataset.act === "edit") loadIntoForm(r);
+        else if (confirm(`जावक क्रमांक ${r.no} हटानी है?`)) {
+          try {
+            await db.collection("jawak").doc(r.id).delete();
+            if (currentId === r.id) { currentId = null; setEditUI(); }
+            await loadRecords();
+            say("जावक हटा दी गई।", "ok");
+          } catch (err) {
+            say(errText(err), "err");
+          }
+        }
+      });
+      $("reg-search").addEventListener("input", renderRegister);
+      $("reg-month").addEventListener("change", renderRegister);
+
+      // ---- देखने की विंडो ----
+      function openView(r) {
+        viewing = r;
+        $("v-body").innerHTML = `<div class="view-sheet">${letterInner(r)}</div>`;
+        $("view-modal").classList.remove("hidden");
+        document.body.style.overflow = "hidden";
+      }
+      function closeView() {
+        $("view-modal").classList.add("hidden");
+        document.body.style.overflow = "";
+      }
+      $("v-close").addEventListener("click", closeView);
+      $("view-modal").addEventListener("click", (e) => { if (e.target === $("view-modal")) closeView(); });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeView(); });
+      $("v-print").addEventListener("click", () => { if (viewing) doPrint(viewing); });
+      $("v-pdf").addEventListener("click", () => { if (viewing) doPdf(viewing, $("v-pdf")); });
+      $("v-edit").addEventListener("click", () => { if (viewing) { const r = viewing; closeView(); loadIntoForm(r); } });
+
+      // ---- नया जावक ----
+      $("new-btn").addEventListener("click", () => {
+        if (!confirm("नया जावक शुरू करें? क्रमांक और विवरण साफ़ हो जाएँगे (सेव की हुई जावक सुरक्षित रहेगी)।")) return;
+        currentId = null;
+        $("f-no").value = "";
+        $("f-date").value = todayISO();
+        editor.innerHTML = "";
+        savedRange = null;
+        persist();
+        setEditUI();
+        say("नया जावक तैयार है।", "ok");
+      });
+
+      loadRecords();
     }
   </script>
 </body>
