@@ -90,6 +90,11 @@
     .t5 { --c: #c2255c; --tint: #fbe6ee; }
     .t6 { --c: #1c7ed6; --tint: #e2f0fc; }
 
+    .t7 { --c: #2b8a3e; --tint: #e3f5e6; }
+    .t8 { --c: #d9480f; --tint: #fde8de; }
+    .t9 { --c: #5f3dc4; --tint: #ebe5fb; }
+    .sec2 { margin-top: 28px; }
+
     .foot { text-align: center; font-size: 0.85rem; color: var(--muted); margin: 26px 14px 0; font-weight: 600; }
 
     @media (prefers-reduced-motion: reduce) { .tile { transition: none; } .tile:hover { transform: none; } }
@@ -126,9 +131,9 @@
       </div>
     </section>
 
-    <!-- मुख्य कार्य -->
+    <!-- रोज़ के काम -->
     <div class="section-head">
-      <h2>मुख्य कार्य</h2>
+      <h2>रोज़ के काम</h2>
     </div>
     <section class="tiles">
       <a href="attendance.html" class="tile t1">
@@ -141,7 +146,16 @@
         </div>
         <span class="go" aria-hidden="true">›</span>
       </a>
-
+      <a href="cooks.html" class="tile t7">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M7 14v6h10v-6"/><path d="M7 14a3.5 3.5 0 0 1-.6-6.9 4.5 4.5 0 0 1 8.4-1.1A3.5 3.5 0 0 1 17 14"/><path d="M7 17h10"/></svg>
+        </span>
+        <div>
+          <h3>रसोइया उपस्थिति दर्ज करें</h3>
+          <p>रसोइयों की हाज़िरी</p>
+        </div>
+        <span class="go" aria-hidden="true">›</span>
+      </a>
       <a href="mdm.html" class="tile t2">
         <span class="icon" aria-hidden="true">
           <svg viewBox="0 0 24 24"><path d="M3 11h18a9 9 0 0 1-18 0Z"/><path d="M8 20h8"/><path d="M9 4c-1 1.2 1 2 0 3.2M13 4c-1 1.2 1 2 0 3.2"/></svg>
@@ -152,18 +166,6 @@
         </div>
         <span class="go" aria-hidden="true">›</span>
       </a>
-
-      <a href="monthly-test.html" class="tile t3">
-        <span class="icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6M9 14h6M9 18h3"/></svg>
-        </span>
-        <div>
-          <h3>मासिक टेस्ट अंक दर्ज करें</h3>
-          <p>कक्षा व विषय अनुसार अंक भरें</p>
-        </div>
-        <span class="go" aria-hidden="true">›</span>
-      </a>
-
       <a href="jawak.html" class="tile t4">
         <span class="icon" aria-hidden="true">
           <svg viewBox="0 0 24 24"><path d="M21.5 3 10.5 14"/><path d="M21.5 3 15 21l-4.5-7L3.5 9.5 21.5 3Z"/></svg>
@@ -174,10 +176,36 @@
         </div>
         <span class="go" aria-hidden="true">›</span>
       </a>
+      <a href="nirikshan.html" class="tile t8">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="m9 13 2 2 4-4"/></svg>
+        </span>
+        <div>
+          <h3>निरीक्षण / अवलोकन दर्ज करें</h3>
+          <p>अधिकारी के हस्ताक्षर सहित A4</p>
+        </div>
+        <span class="go" aria-hidden="true">›</span>
+      </a>
+    </section>
 
+    <!-- रिपोर्ट व परीक्षा -->
+    <div class="section-head sec2">
+      <h2>रिपोर्ट, परीक्षा व विद्यार्थी</h2>
+    </div>
+    <section class="tiles">
+      <a href="monthly-test.html" class="tile t3">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6M9 14h6M9 18h3"/></svg>
+        </span>
+        <div>
+          <h3>मासिक टेस्ट अंक दर्ज करें</h3>
+          <p>कक्षा व विषय अनुसार अंक भरें</p>
+        </div>
+        <span class="go" aria-hidden="true">›</span>
+      </a>
       <a href="halfyearly-result.html" class="tile t5">
         <span class="icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="5.5"/><path d="m9 14 -1.5 7 4.5-2.5 4.5 2.5L15 14"/><path d="m10 9 1.5 1.5L14.5 7.5"/></svg>
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="5.5"/><path d="m9 14-1.5 7 4.5-2.5 4.5 2.5L15 14"/><path d="m10 9 1.5 1.5L14.5 7.5"/></svg>
         </span>
         <div>
           <h3>अर्धवार्षिक परीक्षा परिणाम दर्ज करें</h3>
@@ -185,7 +213,6 @@
         </div>
         <span class="go" aria-hidden="true">›</span>
       </a>
-
       <a href="admission-report.html" class="tile t6">
         <span class="icon" aria-hidden="true">
           <svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/><path d="M3 20h18"/></svg>
@@ -193,6 +220,16 @@
         <div>
           <h3>एडमिशन रिपोर्ट देखें</h3>
           <p>कक्षा अनुसार प्रवेश की जानकारी</p>
+        </div>
+        <span class="go" aria-hidden="true">›</span>
+      </a>
+      <a href="students.html" class="tile t9">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2.3"/><path d="M5.5 16.5c.5-1.8 1.9-2.7 3.5-2.7s3 .9 3.5 2.7"/><path d="M15 10h3.5M15 13.5h3.5"/></svg>
+        </span>
+        <div>
+          <h3>विद्यार्थी प्रोफ़ाइल व रिपोर्ट</h3>
+          <p>फोटो व जानकारी बदलें, रिपोर्ट डाउनलोड</p>
         </div>
         <span class="go" aria-hidden="true">›</span>
       </a>
