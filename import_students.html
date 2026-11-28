@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#14213d" />
+  <title>GMS HARIPURA 1 TO 8 | विद्यार्थी डेटा अपलोड (CSV)</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script defer src="firebase-config.js"></script>
+
+  <style>
+    :root {
+      --ink: #14213d; --ink-soft: #3d4a63; --muted: #6b7690;
+      --teal: #0f766e; --teal-dark: #0b5a54; --saffron: #e8890c;
+      --green: #16794a; --red: #b42318;
+      --bg: #eef1f6; --card: #fff; --line: #dde3ee; --tint: #f5f7fb; --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: "Mukta", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--ink); min-height: 100vh; line-height: 1.5; font-size: 16px;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .hidden { display: none !important; }
+    :focus-visible { outline: 3px solid var(--saffron); outline-offset: 2px; }
+
+    .topbar { background: var(--ink); color: #fff; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 0; border-bottom: 4px solid var(--saffron); }
+    .topbar-inner { max-width: 1100px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; }
+    .brand-mark { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--saffron); color: var(--ink); display: grid; place-items: center; font-weight: 800; font-size: 1.2rem; }
+    .school-tag { display: block; font-size: .8rem; font-weight: 600; color: #b9c4dc; }
+    .topbar h1 { font-size: 1.3rem; font-weight: 700; line-height: 1.25; }
+    .header-actions { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 14px; scrollbar-width: none; }
+    .header-actions::-webkit-scrollbar { display: none; }
+    .header-actions .btn { flex: none; background: rgba(255,255,255,.14); color: #fff; }
+    .header-actions .btn-logout { background: transparent; color: #ffb4ad; border: 1.5px solid rgba(255,180,173,.5); }
+
+    .container { max-width: 1100px; margin: 16px auto 32px; padding: 0 14px; display: flex; flex-direction: column; gap: 16px; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 16px; border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(20,33,61,.04); }
+    .card h2 { font-size: 1.15rem; margin-bottom: 4px; }
+    .hint { font-size: .92rem; color: var(--muted); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; border: none;
+      border-radius: 10px; padding: 10px 14px; min-height: 46px; font: inherit; font-size: 1rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: background .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.98); }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-sm { min-height: 40px; padding: 7px 14px; font-size: .92rem; border-radius: 999px; }
+    .btn-primary { background: var(--teal); color: #fff; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-light { background: #e9edf5; color: var(--ink); }
+    .full { width: 100%; }
+
+    .steps { margin: 10px 0 14px 20px; color: var(--ink-soft); font-size: .95rem; }
+    .steps li { margin-bottom: 4px; }
+    .cols { background: var(--tint); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: .88rem; color: var(--ink-soft); margin-bottom: 14px; overflow-wrap: anywhere; }
+    .drop {
+      border: 2px dashed #b8c2d6; border-radius: 14px; background: var(--tint); padding: 22px 14px; text-align: center; cursor: pointer;
+    }
+    .drop.over { border-color: var(--teal); background: #e3f4f2; }
+    .drop b { display: block; font-size: 1.05rem; }
+    .row-btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+
+    .msg { margin-top: 12px; border-radius: 10px; padding: 9px 12px; font-size: .95rem; font-weight: 600; background: var(--tint); color: var(--ink-soft); }
+    .msg:empty { display: none; }
+    .msg.ok { background: #dcf5e7; color: #0f5f38; }
+    .msg.err { background: #fde4e1; color: #9a1c12; }
+    .msg.warn { background: #fdf0dc; color: #8a4b00; }
+
+    .opts { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+    .check { display: flex; align-items: center; gap: 10px; font-weight: 600; margin: 0; }
+    .check input { width: 22px; height: 22px; accent-color: var(--teal); flex: none; }
+
+    .chips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
+    @media (min-width: 700px) { .chips { grid-template-columns: repeat(5, 1fr); } }
+    .chip { background: var(--tint); border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; }
+    .chip small { display: block; font-size: .8rem; color: var(--muted); font-weight: 600; }
+    .chip b { font-size: 1.4rem; font-weight: 800; }
+    .chip.good b { color: var(--green); } .chip.bad b { color: var(--red); } .chip.new b { color: var(--teal); }
+
+    details { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; background: #fff; }
+    summary { font-weight: 700; cursor: pointer; }
+    .map-grid { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 10px; }
+    @media (min-width: 700px) { .map-grid { grid-template-columns: 1fr 1fr 1fr; } }
+    .map-item label { display: block; font-size: .8rem; color: var(--muted); font-weight: 600; margin-bottom: 3px; overflow-wrap: anywhere; }
+    select { width: 100%; min-height: 42px; padding: 8px 10px; border: 1.5px solid #c8d1e2; border-radius: 10px; font: inherit; font-size: .95rem; background: #fff; color: var(--ink); }
+    select:focus { border-color: var(--teal); outline: 3px solid rgba(15,118,110,.2); outline-offset: 0; }
+
+    .table-responsive { overflow: auto; border: 1px solid var(--line); border-radius: 12px; max-height: 420px; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; background: #fff; }
+    th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    th { background: var(--ink); color: #fff; position: sticky; top: 0; font-size: .82rem; }
+    tbody tr:nth-child(even) { background: var(--tint); }
+    .st { display: inline-block; padding: 1px 9px; border-radius: 999px; font-weight: 700; font-size: .8rem; }
+    .st.new { background: #dcf5e7; color: #0f5f38; } .st.upd { background: #e6eefb; color: #1e3f7a; }
+    .st.err { background: #fde4e1; color: #9a1c12; } .st.skip { background: #eef1f6; color: #6b7690; }
+
+    .issues { margin-top: 14px; font-size: .9rem; max-height: 220px; overflow: auto; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: #fffaf0; }
+    .issues li { margin: 0 0 4px 18px; overflow-wrap: anywhere; }
+    .issues .e { color: #9a1c12; font-weight: 600; } .issues .w { color: #8a4b00; }
+
+    .progress { height: 10px; background: #dbe2ef; border-radius: 999px; overflow: hidden; margin-top: 12px; }
+    .progress i { display: block; height: 100%; width: 0; background: var(--teal); transition: width .25s; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">⬆</div>
+        <div>
+          <span class="school-tag">GMS HARIPURA 1 TO 8</span>
+          <h1>विद्यार्थी डेटा अपलोड (CSV)</h1>
+        </div>
+      </div>
+      <nav class="header-actions" aria-label="मुख्य मेनू">
+        <a href="home.html" class="btn btn-sm">होम</a>
+        <a href="students.html" class="btn btn-sm">विद्यार्थी सूची</a>
+        <button type="button" id="logout-btn" class="btn btn-logout btn-sm">लॉगआउट</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- 1. फाइल चुनें -->
+    <section class="card">
+      <h2>1. CSV फाइल चुनें</h2>
+      <ol class="steps">
+        <li>Excel में फाइल खोलकर <b>Save As → "CSV UTF-8"</b> चुनें (हिंदी नाम ठीक दिखें, इसलिए UTF-8 ज़रूरी है)।</li>
+        <li><b>आधार, खाता नंबर और समग्र आईडी</b> वाले कॉलम को सेव करने से पहले "Text" फ़ॉर्मेट में कर लें, वरना Excel लंबी संख्या को 1.23E+11 जैसा बना देता है।</li>
+        <li>पहली पंक्ति हेडर वाली हो सकती है, पेज खुद पहचान लेगा।</li>
+      </ol>
+      <div class="cols"><b>कॉलम का क्रम :</b> sr · claas sr · विद्यार्थी का नाम · पिता का नाम · Mother Name · Class · Adm No. · Samagra Id · D.O.B. · Gender · Category · Aadhar number · mobile number · IFSC code · खाता नंबर · खाताधारक का नाम</div>
+
+      <div id="drop" class="drop" tabindex="0" role="button" aria-label="CSV फाइल चुनें">
+        <b>📄 CSV फाइल यहाँ छोड़ें या दबाकर चुनें</b>
+        <span class="hint" id="file-name">अभी कोई फाइल नहीं चुनी गई</span>
+        <input type="file" id="file" accept=".csv,text/csv,.txt,.tsv" class="hidden" />
+      </div>
+      <div class="row-btns">
+        <button type="button" id="tpl-btn" class="btn btn-light">⬇ नमूना CSV डाउनलोड</button>
+      </div>
+      <p id="load-msg" class="msg" role="status"></p>
+    </section>
+
+    <!-- 2. जाँच व अपलोड -->
+    <section id="review" class="card hidden">
+      <h2>2. जाँचें और अपलोड करें</h2>
+
+      <div class="opts">
+        <label class="check"><input type="checkbox" id="has-header" /> पहली पंक्ति हेडर (शीर्षक) है</label>
+        <label class="check"><input type="checkbox" id="do-update" checked /> जो विद्यार्थी पहले से हैं उनकी जानकारी अपडेट करें (चेहरा/फोटो नहीं छेड़ा जाएगा)</label>
+      </div>
+
+      <div class="chips">
+        <div class="chip"><small>कुल पंक्तियाँ</small><b id="c-total">0</b></div>
+        <div class="chip new"><small>नए जुड़ेंगे</small><b id="c-new">0</b></div>
+        <div class="chip"><small>अपडेट होंगे</small><b id="c-upd">0</b></div>
+        <div class="chip bad"><small>गलत (छोड़ी जाएँगी)</small><b id="c-err">0</b></div>
+        <div class="chip"><small>चेतावनी</small><b id="c-warn">0</b></div>
+      </div>
+
+      <details>
+        <summary>कॉलम मिलान (अगर क्रम अलग हो तो बदलें)</summary>
+        <div id="map-grid" class="map-grid"></div>
+      </details>
+
+      <div class="table-responsive">
+        <table>
+          <thead><tr id="pv-head"></tr></thead>
+          <tbody id="pv-body"></tbody>
+        </table>
+      </div>
+      <p class="hint" style="margin-top:6px" id="pv-note"></p>
+
+      <ul id="issues" class="issues hidden"></ul>
+
+      <button type="button" id="upload-btn" class="btn btn-success full" style="margin-top:14px">☁ Firebase में अपलोड करें</button>
+      <div class="progress hidden" id="prog"><i id="prog-bar"></i></div>
+      <p id="up-msg" class="msg" role="status"></p>
+      <p class="hint" style="margin-top:10px">आधार, खाता नंबर जैसी जानकारी संवेदनशील है। Firestore Rules में सिर्फ़ लॉगिन किए हुए उपयोगकर्ता को अनुमति रखें।</p>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const norm = (v) => String(v || "").replace(/\s+/g, " ").trim().toLowerCase();
+    function say(id, text, type) { const el = $(id); el.textContent = text || ""; el.className = "msg" + (type ? " " + type : ""); }
+
+    // CSV के कॉलम का क्रम (आपके बताए अनुसार)
+    const FIELDS = [
+      { k: "srNo", label: "क्रम (sr)" },
+      { k: "rollNo", label: "कक्षा में क्रमांक (claas sr)" },
+      { k: "name", label: "विद्यार्थी का नाम" },
+      { k: "fatherName", label: "पिता का नाम" },
+      { k: "motherName", label: "माता का नाम (Mother Name)" },
+      { k: "class", label: "कक्षा (Class)" },
+      { k: "admNo", label: "प्रवेश क्रमांक (Adm No.)" },
+      { k: "samagraId", label: "समग्र आईडी" },
+      { k: "dob", label: "जन्म तिथि (D.O.B.)" },
+      { k: "gender", label: "लिंग (Gender)" },
+      { k: "category", label: "श्रेणी (Category)" },
+      { k: "aadhar", label: "आधार नंबर" },
+      { k: "mobile", label: "मोबाइल नंबर" },
+      { k: "ifsc", label: "IFSC कोड" },
+      { k: "accountNo", label: "खाता नंबर" },
+      { k: "accountHolder", label: "खाताधारक का नाम" }
+    ];
+    const SENSITIVE = new Set(["aadhar", "accountNo"]);
+
+    document.addEventListener("DOMContentLoaded", () => {
+      $("logout-btn").addEventListener("click", async () => { await auth.signOut(); window.location.href = "index.html"; });
+      auth.onAuthStateChanged((user) => {
+        if (!user) { window.location.href = "index.html"; return; }
+        start();
+      });
+    });
+
+    function start() {
+      let rows = [];          // CSV की कच्ची पंक्तियाँ
+      let mapping = [];       // हर CSV कॉलम -> FIELDS का k (या "")
+      let records = [];       // साफ़ की हुई पंक्तियाँ
+      let existing = [];      // Firebase में पहले से मौजूद विद्यार्थी
+      let busy = false;
+
+      async function loadExisting() {
+        try {
+          const snap = await db.collection("students").get();
+          existing = snap.docs.map((d) => { const x = d.data(); return { id: d.id, name: x.name, fatherName: x.fatherName, class: x.class, admNo: x.admNo }; });
+        } catch (err) {
+          console.error(err);
+          say("load-msg", "Firebase से पुराने विद्यार्थियों की सूची नहीं मिली। इंटरनेट/Rules जाँचें।", "err");
+        }
+      }
+      loadExisting();
+
+      // ---------- CSV पढ़ना ----------
+      function parseCsv(text, delim) {
+        const out = []; let row = [], cur = "", q = false;
+        for (let i = 0; i < text.length; i++) {
+          const c = text[i];
+          if (q) {
+            if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c;
+          } else if (c === '"') q = true;
+          else if (c === delim) { row.push(cur); cur = ""; }
+          else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(cur); cur = ""; out.push(row); row = []; }
+          else cur += c;
+        }
+        if (cur !== "" || row.length) { row.push(cur); out.push(row); }
+        return out.filter((r) => r.some((v) => String(v).trim() !== ""));
+      }
+      function detectDelim(text) {
+        const first = text.split(/\r?\n/).find((l) => l.trim()) || "";
+        const n = (ch) => first.split(ch).length - 1;
+        const c = { ",": n(","), "\t": n("\t"), ";": n(";") };
+        return Object.keys(c).sort((a, b) => c[b] - c[a])[0] || ",";
+      }
+
+      async function handleFile(file) {
+        if (!file) return;
+        $("file-name").textContent = file.name;
+        say("load-msg", "फाइल पढ़ी जा रही है...");
+        const text = (await file.text()).replace(/^\uFEFF/, "");
+        if ((text.match(/\uFFFD/g) || []).length > 3) {
+          say("load-msg", "फाइल UTF-8 में नहीं लगती, हिंदी अक्षर बिगड़ सकते हैं। Excel में 'CSV UTF-8' चुनकर दोबारा सेव करें।", "warn");
+        }
+        rows = parseCsv(text, detectDelim(text));
+        if (rows.length < 1) { say("load-msg", "फाइल खाली है।", "err"); $("review").classList.add("hidden"); return; }
+        const colCount = Math.max(...rows.map((r) => r.length));
+        mapping = Array.from({ length: colCount }, (_, i) => (FIELDS[i] ? FIELDS[i].k : ""));
+        $("has-header").checked = !/^\d+$/.test((rows[0][0] || "").trim());
+        buildMapUi();
+        process();
+        $("review").classList.remove("hidden");
+        if (!$("load-msg").classList.contains("warn")) say("load-msg", `${rows.length} पंक्तियाँ और ${colCount} कॉलम मिले।`, "ok");
+        $("review").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      $("drop").addEventListener("click", () => $("file").click());
+      $("drop").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } });
+      $("file").addEventListener("change", (e) => { handleFile(e.target.files[0]); e.target.value = ""; });
+      ["dragenter", "dragover"].forEach((ev) => $("drop").addEventListener(ev, (e) => { e.preventDefault(); $("drop").classList.add("over"); }));
+      ["dragleave", "drop"].forEach((ev) => $("drop").addEventListener(ev, (e) => { e.preventDefault(); $("drop").classList.remove("over"); }));
+      $("drop").addEventListener("drop", (e) => handleFile(e.dataTransfer.files[0]));
+
+      // ---------- कॉलम मिलान ----------
+      function buildMapUi() {
+        const head = $("has-header").checked ? rows[0] : null;
+        $("map-grid").innerHTML = mapping.map((f, i) => {
+          const sample = head ? head[i] : (rows[0][i] || "");
+          return `<div class="map-item"><label>कॉलम ${i + 1}: ${esc(sample || "-")}</label>
+            <select data-col="${i}"><option value="">(छोड़ें)</option>${FIELDS.map((x) => `<option value="${x.k}"${x.k === f ? " selected" : ""}>${esc(x.label)}</option>`).join("")}</select></div>`;
+        }).join("");
+      }
+      $("map-grid").addEventListener("change", (e) => {
+        const s = e.target.closest("select"); if (!s) return;
+        mapping[Number(s.dataset.col)] = s.value;
+        process();
+      });
+      $("has-header").addEventListener("change", () => { buildMapUi(); process(); });
+      $("do-update").addEventListener("change", renderSummary);
+
+      // ---------- सफ़ाई व जाँच ----------
+      const DEV = "०१२३४५६७८९";
+      const toAscii = (v) => String(v).replace(/[०-९]/g, (d) => DEV.indexOf(d));
+      const isSci = (v) => /^\d(\.\d+)?e\+?\d+$/i.test(v);
+
+      function parseDob(v, issues) {
+        if (!v) return "";
+        let s = toAscii(v).trim(), m;
+        if ((m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/))) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+        if ((m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2}|\d{4})$/))) {
+          let y = m[3];
+          if (y.length === 2) { const cy = new Date().getFullYear() % 100; y = (Number(y) <= cy ? "20" : "19") + y; }
+          return `${y}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+        }
+        if (/^\d{5}$/.test(s)) { const d = new Date(Date.UTC(1899, 11, 30) + Number(s) * 86400000); return d.toISOString().slice(0, 10); }
+        issues.push(`जन्म तिथि समझ नहीं आई ("${v}")`);
+        return s;
+      }
+
+      function clean(raw, line) {
+        const errors = [], warns = [], d = {};
+        const g = (k) => (raw[k] || "").trim();
+
+        d.name = g("name");
+        d.fatherName = g("fatherName");
+        d.motherName = g("motherName");
+        if (!d.name) errors.push("विद्यार्थी का नाम खाली है");
+
+        const cls = toAscii(g("class")).replace(/\D/g, "");
+        if (cls.length === 1 && cls >= "1" && cls <= "8") d.class = cls;
+        else errors.push(`कक्षा 1 से 8 के बीच होनी चाहिए ("${g("class")}")`);
+
+        const roll = parseInt(toAscii(g("rollNo")).replace(/\D/g, ""), 10);
+        if (!isNaN(roll)) d.rollNo = roll;
+        const sr = parseInt(toAscii(g("srNo")).replace(/\D/g, ""), 10);
+        if (!isNaN(sr)) d.srNo = sr;
+
+        d.admNo = g("admNo");
+        d.gender = g("gender");
+        d.category = g("category");
+        d.accountHolder = g("accountHolder");
+        d.dob = parseDob(g("dob"), warns);
+
+        const numField = (k, label, len) => {
+          let v = toAscii(g(k)).replace(/[\s-]/g, "");
+          if (!v) { d[k] = ""; return; }
+          if (isSci(v)) { warns.push(`${label} E+ रूप में है (Excel ने बदल दिया), इसलिए खाली छोड़ा गया`); d[k] = ""; return; }
+          v = v.replace(/\D/g, "");
+          if (len && v.length !== len) warns.push(`${label} ${len} अंकों का नहीं है (${v.length} अंक)`);
+          d[k] = v;
+        };
+        numField("samagraId", "समग्र आईडी", 0);
+        numField("aadhar", "आधार नंबर", 12);
+        numField("mobile", "मोबाइल नंबर", 10);
+        numField("accountNo", "खाता नंबर", 0);
+
+        d.ifsc = g("ifsc").replace(/\s/g, "").toUpperCase();
+        if (d.ifsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(d.ifsc)) warns.push(`IFSC कोड सही नहीं लगता ("${d.ifsc}")`);
+
+        return { line, data: d, errors, warns };
+      }
+
+      function process() {
+        const dataRows = rows.slice($("has-header").checked ? 1 : 0);
+        const first = $("has-header").checked ? 2 : 1;
+        const seen = new Set();
+        const byAdm = new Map(), byKey = new Map();
+        existing.forEach((x) => {
+          if (norm(x.admNo)) byAdm.set(norm(x.admNo), x);
+          byKey.set(`${norm(x.name)}|${norm(x.fatherName)}|${x.class}`, x);
+        });
+
+        records = dataRows.map((r, i) => {
+          const raw = {};
+          mapping.forEach((f, c) => { if (f) raw[f] = r[c] == null ? "" : String(r[c]); });
+          const rec = clean(raw, i + first);
+          const d = rec.data;
+          const key = norm(d.admNo) ? "a:" + norm(d.admNo) : `n:${norm(d.name)}|${norm(d.fatherName)}|${d.class}`;
+          if (!rec.errors.length) {
+            if (seen.has(key)) rec.errors.push("फाइल में यही विद्यार्थी दोबारा है");
+            seen.add(key);
+          }
+          rec.match = (norm(d.admNo) && byAdm.get(norm(d.admNo))) || byKey.get(`${norm(d.name)}|${norm(d.fatherName)}|${d.class}`) || null;
+          rec.status = rec.errors.length ? "err" : rec.match ? "upd" : "new";
+          return rec;
+        });
+        renderSummary();
+        renderPreview();
+      }
+
+      function renderSummary() {
+        const doUpd = $("do-update").checked;
+        const n = (s) => records.filter((r) => r.status === s).length;
+        $("c-total").textContent = records.length;
+        $("c-new").textContent = n("new");
+        $("c-upd").textContent = doUpd ? n("upd") : 0;
+        $("c-err").textContent = n("err");
+        $("c-warn").textContent = records.filter((r) => r.warns.length && !r.errors.length).length;
+        const up = n("new") + (doUpd ? n("upd") : 0);
+        $("upload-btn").disabled = busy || up === 0;
+        $("upload-btn").textContent = up ? `☁ ${up} विद्यार्थी Firebase में अपलोड करें` : "अपलोड के लिए कोई सही पंक्ति नहीं है";
+      }
+
+      const mask = (k, v) => (SENSITIVE.has(k) && v ? "••••" + String(v).slice(-4) : v);
+      function renderPreview() {
+        const cols = FIELDS.filter((f) => mapping.includes(f.k));
+        $("pv-head").innerHTML = "<th>पंक्ति</th>" + cols.map((f) => `<th>${esc(f.label)}</th>`).join("") + "<th>स्थिति</th>";
+        const show = records.slice(0, 12);
+        $("pv-body").innerHTML = show.map((r) => `<tr><td>${r.line}</td>` +
+          cols.map((f) => `<td>${esc(mask(f.k, r.data[f.k] ?? ""))}</td>`).join("") +
+          `<td><span class="st ${r.status === "err" ? "err" : r.status === "upd" ? ($("do-update").checked ? "upd" : "skip") : "new"}">${r.status === "err" ? "गलत" : r.status === "upd" ? ($("do-update").checked ? "अपडेट" : "छोड़ेंगे") : "नया"}</span></td></tr>`).join("");
+        $("pv-note").textContent = records.length > show.length ? `पहली ${show.length} पंक्तियाँ दिखाई गई हैं (कुल ${records.length})। आधार व खाता नंबर के सिर्फ़ आख़िरी 4 अंक दिखते हैं।` : "आधार व खाता नंबर के सिर्फ़ आख़िरी 4 अंक दिखते हैं।";
+
+        const items = [];
+        records.forEach((r) => {
+          r.errors.forEach((m) => items.push(`<li class="e">पंक्ति ${r.line} (${esc(r.data.name || "-")}): ✖ ${esc(m)}</li>`));
+          if (!r.errors.length) r.warns.forEach((m) => items.push(`<li class="w">पंक्ति ${r.line} (${esc(r.data.name)}): ⚠ ${esc(m)}</li>`));
+        });
+        const ul = $("issues");
+        ul.classList.toggle("hidden", !items.length);
+        ul.innerHTML = items.slice(0, 60).join("") + (items.length > 60 ? `<li>... और ${items.length - 60} संदेश</li>` : "");
+      }
+
+      // ---------- अपलोड ----------
+      $("upload-btn").addEventListener("click", async () => {
+        if (busy) return;
+        const doUpd = $("do-update").checked;
+        const todo = records.filter((r) => r.status === "new" || (r.status === "upd" && doUpd));
+        if (!todo.length) return;
+        const nNew = todo.filter((r) => r.status === "new").length, nUpd = todo.length - nNew;
+        if (!confirm(`${nNew} नए विद्यार्थी जोड़े जाएँगे और ${nUpd} की जानकारी अपडेट होगी। आगे बढ़ें?`)) return;
+
+        busy = true; renderSummary();
+        $("prog").classList.remove("hidden");
+        say("up-msg", "अपलोड हो रहा है...");
+        try {
+          const ts = firebase.firestore.FieldValue.serverTimestamp();
+          const CH = 400;
+          for (let i = 0; i < todo.length; i += CH) {
+            const batch = db.batch();
+            todo.slice(i, i + CH).forEach((r) => {
+              const data = {};
+              Object.entries(r.data).forEach(([k, v]) => { if (v !== "" && v != null) data[k] = v; });
+              data.source = "csv-import";
+              data.importedAt = ts;
+              if (r.status === "new") {
+                if (data.fatherName === undefined) data.fatherName = "";
+                if (data.rollNo === undefined) data.rollNo = 0;
+                data.createdAt = ts;
+                batch.set(db.collection("students").doc(), data);
+              } else {
+                batch.set(db.collection("students").doc(r.match.id), data, { merge: true });
+              }
+            });
+            await batch.commit();
+            $("prog-bar").style.width = Math.round((Math.min(i + CH, todo.length) / todo.length) * 100) + "%";
+          }
+          say("up-msg", `✔ अपलोड पूरा: ${nNew} नए जुड़े, ${nUpd} अपडेट हुए।`, "ok");
+          await loadExisting();
+          process();
+        } catch (err) {
+          console.error(err);
+          say("up-msg", err && err.code === "permission-denied"
+            ? "Firebase की अनुमति (Rules) नहीं है। Firestore Rules में 'students' पर लिखने की अनुमति जाँचें।"
+            : "अपलोड बीच में रुक गया। इंटरनेट जाँचकर दोबारा कोशिश करें (जो जुड़ चुके हैं वे दोबारा नहीं जुड़ेंगे, सिर्फ़ अपडेट होंगे)।", "err");
+        } finally {
+          busy = false; renderSummary();
+        }
+      });
+
+      // ---------- नमूना फाइल ----------
+      $("tpl-btn").addEventListener("click", () => {
+        const q = (v) => `"${String(v).replace(/"/g, '""')}"`;
+        const head = ["sr", "claas sr", "विद्यार्थी का नाम", "पिता का नाम", "Mother Name", "Class", "Adm No.", "Samagra Id", "D.O.B.", "Gender", "Category", "Aadhar number", "mobile number", "IFSC code", "खाता नंबर", "खाताधारक का नाम"];
+        const sample = [1, 1, "नमूना विद्यार्थी", "नमूना पिता", "नमूना माता", 1, "1001", "12345678", "15/08/2018", "बालक", "OBC", "123456789012", "9876543210", "SBIN0001234", "12345678901", "नमूना पिता"];
+        const blob = new Blob(["\uFEFF" + [head, sample].map((r) => r.map(q).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8;" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob); a.download = "student-import-sample.csv";
+        document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+      });
+    }
+  </script>
+</body>
+</html>
